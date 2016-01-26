@@ -1,17 +1,21 @@
 
 #include <windows.h>
-
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include "SimpleMath.h"
 #include "bth_image.h"
+#include <dinput.h>
+
+//http://www.braynzarsoft.net/viewtutorial/q16390-braynzar-soft-directx-11-tutorials
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
+#pragma comment (lib, "dinput8.lib")
+#pragma comment (lib, "dxguid.lib")
 
 HWND InitWindow(HINSTANCE hInstance);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -37,6 +41,33 @@ ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 ID3D11GeometryShader* gGeometryShader = nullptr;
+
+//-------------------------------------------------
+XMVECTOR DefaultForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+XMVECTOR DefaultRight = XMVectorSet(1.0f,0.0f,0.0f,0.0f);
+XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+
+XMVECTOR camPosition = XMVectorSet(0.0f, 0.0f, -0.5f, 0.0f);
+XMVECTOR camTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+XMVECTOR camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+XMMATRIX camRotationMatrix;
+XMMATRIX groundWorld;
+
+XMMATRIX camView;
+
+float moveLeftRight = 0.0f;
+float moveBackForward = 0.0f;
+
+float camYaw = 0.0f;
+float camPitch = 0.0f;
+
+void UpdateCamera();
+
+IDirectInputDevice8* DIKeyboard;
+IDirectInputDevice8* DIMouse;
+//-------------------------------------------------
 
 struct VS_CONSTANT_BUFFER
 {
@@ -414,7 +445,10 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 	scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;      // how swap chain is to be used
 	scd.OutputWindow = wndHandle;                           // the window to be used
 	scd.SampleDesc.Count = 4;                               // how many multisamples
-	scd.Windowed = TRUE;                                    // windowed/full-screen mode
+	//scd.Windowed = TRUE;                                    // windowed/full-screen mode
+	//----------------------------------------
+	scd.Windowed = FALSE;
+	//----------------------------------------
 
 	// create a device, device context and swap chain using the information in the scd struct
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(NULL,
@@ -447,3 +481,77 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 	}
 	return hr;
 }
+//-----------------------------------------------------------
+void UpdateCamera()
+{
+	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
+	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
+	camTarget = XMVector3Normalize(camTarget);
+
+	XMMATRIX RotateYTempMatrix;
+	RotateYTempMatrix = XMMatrixRotationY(camPitch);
+
+	camRight = XMVector3TransformCoord(DefaultRight, RotateYTempMatrix);
+	camUp = XMVector3TransformCoord(camUp, RotateYTempMatrix);
+	camForward = XMVector3TransformCoord(DefaultForward, RotateYTempMatrix);
+
+	camPosition += moveLeftRight*camRight;
+	camPosition += moveBackForward*camForward;
+
+	moveLeftRight = 0.0f;
+	moveBackForward = 0.0f;
+
+	camTarget = camPosition + camTarget;
+
+	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
+}
+
+void DetectInput(double time)
+{
+	DIMOUSESTATE mouseCurrState;
+	DIMOUSESTATE mouseLastState;
+
+	HWND hwnd;
+
+	BYTE keyboardState[256];
+
+	DIKeyboard->Acquire();
+	DIMouse->Acquire();
+
+	DIMouse->GetDeviceState(sizeof(DIMOUSESTATE), &mouseCurrState);
+
+	DIKeyboard->GetDeviceState(sizeof(keyboardState), (LPVOID)&keyboardState);
+
+	if (keyboardState[DIK_ESCAPE] & 0x80)
+		PostMessage(hwnd, WM_DESTROY, 0, 0);
+
+	float speed = 15.0f * time;
+
+	if (keyboardState[DIK_A] & 0x80)
+	{
+		moveLeftRight -= speed;
+	}
+	if (keyboardState[DIK_D] & 0x80)
+	{
+		moveLeftRight += speed;
+	}
+	if (keyboardState[DIK_W] & 0x80)
+	{
+		moveBackForward += speed;
+	}
+	if (keyboardState[DIK_S] & 0x80)
+	{
+		moveBackForward -= speed;
+	}
+	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY))
+	{
+		camYaw += mouseLastState.lX * 0.001f;
+		camPitch += mouseCurrState.lY * 0.001f;
+		mouseLastState = mouseCurrState;
+	}
+
+	UpdateCamera();
+
+	return;
+}
+//-----------------------------------------------------------

@@ -73,7 +73,7 @@ private:
 	XMFLOAT3 mUp; //view space y-axis
 	XMFLOAT3 mLook; //view space z-axis
 
-					//Cache frustrum properties
+	//Cache frustrum properties
 	float mNearZ;
 	float mFarZ;
 	float mAspect;
