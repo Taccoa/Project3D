@@ -1,136 +1,89 @@
 #pragma once
+#ifndef CAMERA_H
+#define CAMERA_H
+#include <windows.h>
+#include <d3d11.h>
+#include <d3dcompiler.h>
+#include <DirectXMath.h>
+#include "SimpleMath.h"
 
-XMVECTOR Camera::GetPositionXM()const
+using namespace DirectX::SimpleMath;
+using namespace DirectX;
+
+class Camera
 {
-	return XMLoadFloat3(&mPosition);
-}
+public:
+	Camera();
+	~Camera();
 
-XMFLOAT3 Camera::GetPosition()const
-{
-	return mPosition;
-}
+	//Get/Set world camera position
+	XMVECTOR GetPositionXM()const;
+	XMFLOAT3 GetPosition()const;
+	void SetPosition(float x, float y, float z);
+	void SetPosition(const XMFLOAT3& v);
 
-void Camera::SetLens(float fovY, float aspect, float zn, float zf)
-{
-	//cache properties
-	mFovY = fovY;
-	mAspect = aspect;
-	mNearZ = zn;
-	mFarZ = zf;
-	mNearWindowHeight = 2.0f * mNearZ * tanf(0.5f*mFovY);
-	mFarWindowHeight = 2.0f * mFarZ * tanf(0.5f*mFovY);
+	//Get camera basis vectors
+	XMVECTOR GetRightXM()const;
+	XMFLOAT3 GetRight()const;
+	XMVECTOR GetUpXM()const;
+	XMFLOAT3 GetUp()const;
+	XMVECTOR GetLookXM()const;
+	XMFLOAT3 GetLook()const;
 
-	XMMATRIX P = XMMatrixPerspectiveFovLH(mFovY, mAspect, mNearZ, mFarZ);
-	XMStoreFloat4x4(&mProj, P);
-}
+	//Get frustrum properties
+	float GetNearZ()const;
+	float GetFarZ()const;
+	float GetAspect()const;
+	float GetFovY()const;
+	float GetFovX()const;
 
-float Camera::GetFovX()const
-{
-	float halfWidth = 0.5f*GetNearWindowWidth();
-	return 2.0f*atan(halfWidth / mNearZ);
-}
+	//Get near and far plane dimensions in view space coordinates
+	float GetNearWindowWidth()const;
+	float GetNearWindowHeight()const;
+	float GetFarWindowWidth()const;
+	float GetFarWindowHeight()const;
 
-float Camera::GetNearWindowWidth()const
-{
-	return mAspect * mNearWindowHeight;
-}
+	//Set frustrum
+	void SetLens(float fovY, float aspect, float zn, float zf);
 
-float Camera::GetNearWindowHeight()const
-{
-	return mNearWindowHeight;
-}
+	//Define camera space via Look At parameters
+	void LookAt(FXMVECTOR pos, FXMVECTOR target, FXMVECTOR worldUp);
+	void LookAt(const XMFLOAT3& pos, const XMFLOAT3& target, const XMFLOAT3& up);
 
-float Camera::GetFarWindowWidth()const
-{
-	return mAspect * mFarWindowHeight;
-}
+	//Get View/Proj matrices
+	XMMATRIX View()const;
+	XMMATRIX Proj()const;
+	XMMATRIX ViewProj()const;
 
-float Camera::GetFarWindowHeight()const
-{
-	return mFarWindowHeight;
-}
+	//Strafe/Walk the camera a distance d
+	void Strafe(float d);
+	void Walk(float d);
 
-void Camera::Walk(float d)
-{
-	//mPosition += d*mLook
-	XMVECTOR s = XMVectorReplicate(d);
-	XMVECTOR l = XMLoadFloat3(&mLook);
-	XMVECTOR p = XMLoadFloat3(&mPosition);
-	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, l, p));
-}
+	//Rotate the camera
+	void Pitch(float angle);
+	void Rotate(float angle);
 
-void Camera::Strafe(float d)
-{
-	//mPosition += d*mRight
-	XMVECTOR s = XMVectorReplicate(d);
-	XMVECTOR r = XMLoadFloat3(&mRight);
-	XMVECTOR p = XMLoadFloat3(&mPosition);
-	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, r, p));
-}
+	//After modifying camera position/orientation, call to rebuild the view matrix once per frame
+	void UpdateViewMatrix();
 
-void Camera::Pitch(float angle)
-{
-	//Rotate up and look vector about the right vector
-	XMMATRIX R = XMMatrixRotationAxis(XMLoadFloat3(&mRight), angle);
+private:
+	//Camera coordinate system with coordinates relative to world space
+	XMFLOAT3 mPosition; //view space origin
+	XMFLOAT3 mRight; //view space x-axis
+	XMFLOAT3 mUp; //view space y-axis
+	XMFLOAT3 mLook; //view space z-axis
 
-	XMStoreFloat3(&mUp, XMVector3TransformNormal(XMLoadFloat3(&mUp), R));
-	XMStoreFloat3(&mLook, XMVector3TransformNormal(XMLoadFloat3(&mLook), R));
-}
+					//Cache frustrum properties
+	float mNearZ;
+	float mFarZ;
+	float mAspect;
+	float mFovY;
+	float mNearWindowHeight;
+	float mFarWindowHeight;
 
-void Camera::Rotate(float angle)
-{
-	//Rotate the basis vectors about the world y-axis
-	XMMATRIX R = XMMatrixRotationY(angle);
+	//Cache View/Proj matrices
+	XMFLOAT4X4 mView;
+	XMFLOAT4X4 mProj;
+};
 
-	XMStoreFloat3(&mRight, XMVector3TransformNormal(XMLoadFloat3(&mRight), R));
-	XMStoreFloat3(&mUp, XMVector3TransformNormal(XMLoadFloat3(&mUp), R));
-	XMStoreFloat3(&mLook, XMVector3TransformNormal(XMLoadFloat3(&mLook), R));
-}
-
-void Camera::UpdateViewMatrix()
-{
-	XMVECTOR R = XMLoadFloat3(&mRight);
-	XMVECTOR U = XMLoadFloat3(&mUp);
-	XMVECTOR L = XMLoadFloat3(&mLook);
-	XMVECTOR P = XMLoadFloat3(&mPosition);
-
-	//Orthonormalize the right, up and look vectors
-
-	//Make look vector unit length
-	L = XMVector3Normalize(L);
-
-	//Compute a new corrected "up" vector and normalize it
-	U = XMVector3Normalize(XMVector3Cross(L, R));
-
-	//Compute a new corrected "right" vector. U and L are already ortho-normal, so no need to normalize cross product
-	R = XMVector3Cross(U, L);
-
-	//Fill in the view matrix entries
-	float x = XMVectorGetX(XMVector3Dot(P, R));
-	float y = XMVectorGetX(XMVector3Dot(P, U));
-	float z = XMVectorGetX(XMVector3Dot(P, L));
-
-	XMStoreFloat3(&mRight, R);
-	XMStoreFloat3(&mUp, U);
-	XMStoreFloat3(&mLook, L);
-
-	mView(0, 0) = mRight.x;
-	mView(1, 0) = mRight.y;
-	mView(2, 0) = mRight.z;
-	mView(3, 0) = x;
-
-	mView(0, 1) = mUp.x;
-	mView(1, 1) = mUp.y;
-	mView(2, 1) = mUp.z;
-	mView(3, 1) = y;
-
-	mView(0, 2) = mLook.x;
-	mView(1, 2) = mLook.y;
-	mView(2, 2) = mLook.z;
-	mView(3, 2) = z;
-
-	mView(0, 3) = 0.0f;
-	mView(1, 3) = 0.0f;
-	mView(2, 3) = 0.0f;
-	mView(3, 3) = 1.0f;
-}
+#endif
