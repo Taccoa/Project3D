@@ -81,6 +81,9 @@ XMMATRIX Rotationz;
 
 bool InitDirectInput(HINSTANCE hInstance);
 void DetectInput(double time);
+
+HRESULT hr;
+HWND hwnd = NULL;
 //-------------------------------------------------
 
 struct VS_CONSTANT_BUFFER
@@ -367,10 +370,13 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 		while (WM_QUIT != msg.message)
 		{
+			//------------------------------------------------------
 			if (!InitDirectInput(hInstance))
 			{
-
+				MessageBox(0, L"Direct Input Initialization - Failed", L"Error", MB_OK);
+				return 0;
 			}
+			//------------------------------------------------------
 
 			if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 			{
@@ -403,6 +409,11 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		gDevice->Release();
 		gDeviceContext->Release();
 		DestroyWindow(wndHandle);
+		//------------------------------------------------
+		DIKeyboard->Unacquire();
+		DIMouse->Unacquire();
+		DirectInput->Release();
+		//------------------------------------------------
 	}
 
 	return (int) msg.wParam;
@@ -525,12 +536,26 @@ void UpdateCamera()
 	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
 }
 
+bool InitDirectInput(HINSTANCE hInstance)
+{
+	hr = DirectInput8Create(hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&DirectInput, NULL);
+
+	hr = DirectInput->CreateDevice(GUID_SysKeyboard, &DIKeyboard, NULL);
+
+	hr = DirectInput->CreateDevice(GUID_SysMouse, &DIMouse, NULL);
+
+	hr = DIKeyboard->SetDataFormat(&c_dfDIKeyboard);
+	hr = DIKeyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+
+	hr = DIMouse->SetDataFormat(&c_dfDIMouse);
+	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
+
+	return true;
+}
+
 void DetectInput(double time)
 {
 	DIMOUSESTATE mouseCurrState;
-	DIMOUSESTATE mouseLastState;
-
-	HWND hwnd;
 
 	BYTE keyboardState[256];
 
