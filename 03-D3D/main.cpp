@@ -71,7 +71,7 @@ void UpdateConstantBuffer()
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-	rotation += 0.1f;
+	rotation += 0.01f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
 
