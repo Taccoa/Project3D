@@ -279,8 +279,9 @@ HRESULT LoadFBX(std::vector<FBXData>* outVertexVector)
 			FbxMesh* myMesh = (FbxMesh*)myChildNode->GetNodeAttribute();
 
 			FbxVector4* pVertices = myMesh->GetControlPoints(); //A control point is an XYZ coordinate, it is synonym of vertex. 
-			int* pIndices = myMesh->GetPolygonVertices(); //Get the indices of the control points. 
 
+			FbxGeometryElementNormal* normalElement = myMesh->GetElementNormal();
+	
 			for (int polygons = 0; polygons < myMesh->GetPolygonCount(); polygons++)
 			{
 				int numberVertices = myMesh->GetPolygonSize(polygons);
@@ -289,13 +290,27 @@ HRESULT LoadFBX(std::vector<FBXData>* outVertexVector)
 
 				for (int vertices = 0; vertices < numberVertices; vertices++)
 				{
-					int controlPointLocation = myMesh->GetPolygonVertex(polygons, vertices);
-
 					FBXData data;
+					int controlPointLocation = myMesh->GetPolygonVertex(polygons, vertices);
 
 					data.pos[0] = (float)pVertices[controlPointLocation].mData[0];
 					data.pos[1] = (float)pVertices[controlPointLocation].mData[1];
 					data.pos[2] = (float)pVertices[controlPointLocation].mData[2];
+
+					if (normalElement)
+					{
+						if (normalElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex)
+						{
+							int normalIndex = 0;
+
+							if (normalElement->GetReferenceMode() == FbxGeometryElement::eDirect)
+							{
+								normalIndex = polygons;
+
+
+							}
+						}
+					}
 
 					//How can I get all the indices and send them to my array in the FBXData struct? 
 
