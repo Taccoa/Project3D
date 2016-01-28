@@ -74,16 +74,43 @@ LPDIRECTINPUT8 DirectInput;
 float rotx = 0;
 float rotz = 0;
 float scaleX = 1.0f;
-float scaleZ = 1.0F;
+float scaleZ = 1.0f;
 
 XMMATRIX Rotationx;
 XMMATRIX Rotationz;
+
+XMMATRIX WVP;
+XMMATRIX cube1World;
+XMMATRIX cube2World;
+XMMATRIX camProjection;
+
+XMMATRIX d2dWorld;
+
+XMMATRIX Rotation;
+XMMATRIX Scale;
+XMMATRIX Translation;
+float rot = 0.01f;
 
 bool InitDirectInput(HINSTANCE hInstance);
 void DetectInput(double time);
 
 HRESULT hr;
 HWND hwnd = NULL;
+
+double countsPerSecond = 0.0;
+__int64 CounterStart = 0;
+
+int frameCount = 0;
+int fps = 0;
+
+__int64 frameTimeOld = 0;
+double frameTime;
+
+void UpdateScene(double time);
+
+void StartTimer();
+double GetTime();
+double GetFrameTime();
 //-------------------------------------------------
 
 struct VS_CONSTANT_BUFFER
@@ -320,6 +347,156 @@ void SetViewport()
 	gDeviceContext->RSSetViewports(1, &vp);
 }
 
+//-----------------------------------------------------------
+void UpdateCamera()
+{
+	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
+	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
+	camTarget = XMVector3Normalize(camTarget);
+
+	XMMATRIX RotateYTempMatrix;
+	RotateYTempMatrix = XMMatrixRotationY(camPitch);
+
+	camRight = XMVector3TransformCoord(DefaultRight, RotateYTempMatrix);
+	camUp = XMVector3TransformCoord(camUp, RotateYTempMatrix);
+	camForward = XMVector3TransformCoord(DefaultForward, RotateYTempMatrix);
+
+	camPosition += moveLeftRight*camRight;
+	camPosition += moveBackForward*camForward;
+
+	moveLeftRight = 0.0f;
+	moveBackForward = 0.0f;
+
+	camTarget = camPosition + camTarget;
+
+	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
+}
+
+bool InitDirectInput(HINSTANCE hInstance)
+{
+	hr = DirectInput8Create(hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&DirectInput, NULL);
+
+	hr = DirectInput->CreateDevice(GUID_SysKeyboard, &DIKeyboard, NULL);
+
+	hr = DirectInput->CreateDevice(GUID_SysMouse, &DIMouse, NULL);
+
+	hr = DIKeyboard->SetDataFormat(&c_dfDIKeyboard);
+	hr = DIKeyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+
+	hr = DIMouse->SetDataFormat(&c_dfDIMouse);
+	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
+
+	return true;
+}
+
+void DetectInput(double time)
+{
+	DIMOUSESTATE mouseCurrState;
+
+	BYTE keyboardState[256];
+
+	DIKeyboard->Acquire();
+	DIMouse->Acquire();
+
+	DIMouse->GetDeviceState(sizeof(DIMOUSESTATE), &mouseCurrState);
+
+	DIKeyboard->GetDeviceState(sizeof(keyboardState), (LPVOID)&keyboardState);
+
+	if (keyboardState[DIK_ESCAPE] & 0x80)
+		PostMessage(hwnd, WM_DESTROY, 0, 0);
+
+	float speed = 15.0f * time;
+
+	if (keyboardState[DIK_A] & 0x80)
+	{
+		moveLeftRight -= speed;
+	}
+	if (keyboardState[DIK_D] & 0x80)
+	{
+		moveLeftRight += speed;
+	}
+	if (keyboardState[DIK_W] & 0x80)
+	{
+		moveBackForward += speed;
+	}
+	if (keyboardState[DIK_S] & 0x80)
+	{
+		moveBackForward -= speed;
+	}
+	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY))
+	{
+		camYaw += mouseLastState.lX * 0.001f;
+		camPitch += mouseCurrState.lY * 0.001f;
+		mouseLastState = mouseCurrState;
+	}
+
+	UpdateCamera();
+
+	return;
+}
+
+void StartTimer()
+{
+	LARGE_INTEGER frequencyCount;
+	QueryPerformanceFrequency(&frequencyCount);
+
+	countsPerSecond = double(frequencyCount.QuadPart);
+
+	QueryPerformanceCounter(&frequencyCount);
+	CounterStart = frequencyCount.QuadPart;
+}
+
+double GetTime()
+{
+	LARGE_INTEGER currentTime;
+	QueryPerformanceCounter(&currentTime);
+	return double(currentTime.QuadPart - CounterStart) / countsPerSecond;
+}
+
+double GetFrameTime()
+{
+	LARGE_INTEGER currentTime;
+	__int64 tickCount;
+	QueryPerformanceCounter(&currentTime);
+
+	tickCount = currentTime.QuadPart - frameTimeOld;
+	frameTimeOld = currentTime.QuadPart;
+
+	if (tickCount < 0.0f)
+		tickCount = 0.0f;
+
+	return float(tickCount) / countsPerSecond;
+}
+
+void UpdateScene(double time)
+{
+	rot += 1.0f * time;
+	if (rot > 6.28f)
+		rot = 0.0f;
+
+	cube1World = XMMatrixIdentity();
+
+	XMVECTOR rotxaxis = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMVECTOR rotzaxis = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+
+	Rotation = XMMatrixRotationAxis(rotyaxis, rot);
+	Rotationx = XMMatrixRotationAxis(rotxaxis, rot);
+	Rotationz = XMMatrixRotationAxis(rotzaxis, rot);
+	Translation = XMMatrixTranslation(0.0f, 0.0f, 4.0f);
+
+	cube1World = Translation * Rotation * Rotationx * Rotationz;
+
+	cube2World = XMMatrixIdentity();
+
+	Rotation = XMMatrixRotationAxis(rotyaxis, -rot);
+
+	Scale = XMMatrixScaling(scaleX, scaleZ, 1.3f);
+
+	cube2World = Rotation *Scale;
+}
+//-----------------------------------------------------------
+
 void Render()
 {
 	// clear the back buffer to a deep blue
@@ -386,6 +563,20 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			else
 			{
 				Render(); //8. Rendera
+
+				//----------------------------------------------------
+				frameCount++;
+				if (GetTime() > 1.0f)
+				{
+					fps = frameCount;
+					frameCount = 0;
+					StartTimer();
+				}
+
+				frameTime = GetFrameTime();
+
+				UpdateScene(frameTime);
+				//----------------------------------------------------
 
 				gSwapChain->Present(0, 0); //9. Växla front- och back-buffer
 			}
@@ -511,91 +702,3 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 	}
 	return hr;
 }
-//-----------------------------------------------------------
-void UpdateCamera()
-{
-	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
-	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
-	camTarget = XMVector3Normalize(camTarget);
-
-	XMMATRIX RotateYTempMatrix;
-	RotateYTempMatrix = XMMatrixRotationY(camPitch);
-
-	camRight = XMVector3TransformCoord(DefaultRight, RotateYTempMatrix);
-	camUp = XMVector3TransformCoord(camUp, RotateYTempMatrix);
-	camForward = XMVector3TransformCoord(DefaultForward, RotateYTempMatrix);
-
-	camPosition += moveLeftRight*camRight;
-	camPosition += moveBackForward*camForward;
-
-	moveLeftRight = 0.0f;
-	moveBackForward = 0.0f;
-
-	camTarget = camPosition + camTarget;
-
-	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
-}
-
-bool InitDirectInput(HINSTANCE hInstance)
-{
-	hr = DirectInput8Create(hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&DirectInput, NULL);
-
-	hr = DirectInput->CreateDevice(GUID_SysKeyboard, &DIKeyboard, NULL);
-
-	hr = DirectInput->CreateDevice(GUID_SysMouse, &DIMouse, NULL);
-
-	hr = DIKeyboard->SetDataFormat(&c_dfDIKeyboard);
-	hr = DIKeyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
-
-	hr = DIMouse->SetDataFormat(&c_dfDIMouse);
-	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
-
-	return true;
-}
-
-void DetectInput(double time)
-{
-	DIMOUSESTATE mouseCurrState;
-
-	BYTE keyboardState[256];
-
-	DIKeyboard->Acquire();
-	DIMouse->Acquire();
-
-	DIMouse->GetDeviceState(sizeof(DIMOUSESTATE), &mouseCurrState);
-
-	DIKeyboard->GetDeviceState(sizeof(keyboardState), (LPVOID)&keyboardState);
-
-	if (keyboardState[DIK_ESCAPE] & 0x80)
-		PostMessage(hwnd, WM_DESTROY, 0, 0);
-
-	float speed = 15.0f * time;
-
-	if (keyboardState[DIK_A] & 0x80)
-	{
-		moveLeftRight -= speed;
-	}
-	if (keyboardState[DIK_D] & 0x80)
-	{
-		moveLeftRight += speed;
-	}
-	if (keyboardState[DIK_W] & 0x80)
-	{
-		moveBackForward += speed;
-	}
-	if (keyboardState[DIK_S] & 0x80)
-	{
-		moveBackForward -= speed;
-	}
-	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY))
-	{
-		camYaw += mouseLastState.lX * 0.001f;
-		camPitch += mouseCurrState.lY * 0.001f;
-		mouseLastState = mouseCurrState;
-	}
-
-	UpdateCamera();
-
-	return;
-}
-//-----------------------------------------------------------
