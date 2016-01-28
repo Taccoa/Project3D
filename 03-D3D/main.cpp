@@ -67,6 +67,20 @@ void UpdateCamera();
 
 IDirectInputDevice8* DIKeyboard;
 IDirectInputDevice8* DIMouse;
+
+DIMOUSESTATE mouseLastState;
+LPDIRECTINPUT8 DirectInput;
+
+float rotx = 0;
+float rotz = 0;
+float scaleX = 1.0f;
+float scaleZ = 1.0F;
+
+XMMATRIX Rotationx;
+XMMATRIX Rotationz;
+
+bool InitDirectInput(HINSTANCE hInstance);
+void DetectInput(double time);
 //-------------------------------------------------
 
 struct VS_CONSTANT_BUFFER
@@ -353,6 +367,11 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 		while (WM_QUIT != msg.message)
 		{
+			if (!InitDirectInput(hInstance))
+			{
+
+			}
+
 			if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 			{
 				TranslateMessage(&msg);
@@ -445,9 +464,9 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 	scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;      // how swap chain is to be used
 	scd.OutputWindow = wndHandle;                           // the window to be used
 	scd.SampleDesc.Count = 4;                               // how many multisamples
-	//scd.Windowed = TRUE;                                    // windowed/full-screen mode
+	scd.Windowed = TRUE;                                    // windowed/full-screen mode
 	//----------------------------------------
-	scd.Windowed = FALSE;
+	//scd.Windowed = FALSE;
 	//----------------------------------------
 
 	// create a device, device context and swap chain using the information in the scd struct
