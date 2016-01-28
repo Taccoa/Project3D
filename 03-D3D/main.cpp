@@ -7,6 +7,10 @@
 #include "SimpleMath.h"
 #include "bth_image.h"
 
+#include <fbxsdk.h>
+#include <vector>
+#include <assert.h>
+
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
@@ -31,12 +35,13 @@ ID3D11ShaderResourceView* gTextureView = nullptr;
 ID3D11Texture2D *gTexture = NULL;
 
 ID3D11Buffer* gVertexBuffer = nullptr;
+int vertexVector = 0;
 ID3D11Buffer* gConstantBuffer = nullptr;
 
 ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
-ID3D11GeometryShader* gGeometryShader = nullptr;
+//ID3D11GeometryShader* gGeometryShader = nullptr;
 
 struct VS_CONSTANT_BUFFER
 {
@@ -96,7 +101,7 @@ void UpdateConstantBuffer()
 
 	gDeviceContext->Unmap(gConstantBuffer, 0);
 
-	gDeviceContext->GSSetConstantBuffers(0, 1, &gConstantBuffer);
+	gDeviceContext->VSSetConstantBuffers(0, 1, &gConstantBuffer);
 };
 
 void CreateDepthBuffer()
@@ -118,37 +123,37 @@ void CreateDepthBuffer()
 
 	gDevice->CreateDepthStencilView(gDepthStencilBuffer, 0, &gDepthview);
 }
-
-void CreateTexture()
-{
-	D3D11_TEXTURE2D_DESC bthTexDesc;
-	ZeroMemory(&bthTexDesc, sizeof(bthTexDesc));
-	bthTexDesc.Width = BTH_IMAGE_WIDTH;
-	bthTexDesc.Height = BTH_IMAGE_HEIGHT;
-	bthTexDesc.MipLevels = bthTexDesc.ArraySize = 1;
-	bthTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	bthTexDesc.SampleDesc.Count = 1;
-	bthTexDesc.SampleDesc.Quality = 0;
-	bthTexDesc.Usage = D3D11_USAGE_DEFAULT;
-	bthTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	bthTexDesc.CPUAccessFlags = 0;
-	bthTexDesc.MiscFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA data;
-	ZeroMemory(&data, sizeof(data));
-	data.pSysMem = (void*)BTH_IMAGE_DATA;
-	data.SysMemPitch = BTH_IMAGE_WIDTH * 4 * sizeof(char);
-	gDevice->CreateTexture2D(&bthTexDesc, &data, &gTexture);
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC resViewDesc;
-	ZeroMemory(&resViewDesc, sizeof(resViewDesc));
-	resViewDesc.Format = bthTexDesc.Format;
-	resViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	resViewDesc.Texture2D.MipLevels = bthTexDesc.MipLevels;
-	resViewDesc.Texture2D.MostDetailedMip = 0;
-	gDevice->CreateShaderResourceView(gTexture, &resViewDesc, &gTextureView);
-	
-}
+//
+//void CreateTexture()
+//{
+//	D3D11_TEXTURE2D_DESC bthTexDesc;
+//	ZeroMemory(&bthTexDesc, sizeof(bthTexDesc));
+//	bthTexDesc.Width = BTH_IMAGE_WIDTH;
+//	bthTexDesc.Height = BTH_IMAGE_HEIGHT;
+//	bthTexDesc.MipLevels = bthTexDesc.ArraySize = 1;
+//	bthTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+//	bthTexDesc.SampleDesc.Count = 1;
+//	bthTexDesc.SampleDesc.Quality = 0;
+//	bthTexDesc.Usage = D3D11_USAGE_DEFAULT;
+//	bthTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+//	bthTexDesc.CPUAccessFlags = 0;
+//	bthTexDesc.MiscFlags = 0;
+//
+//	D3D11_SUBRESOURCE_DATA data;
+//	ZeroMemory(&data, sizeof(data));
+//	data.pSysMem = (void*)BTH_IMAGE_DATA;
+//	data.SysMemPitch = BTH_IMAGE_WIDTH * 4 * sizeof(char);
+//	gDevice->CreateTexture2D(&bthTexDesc, &data, &gTexture);
+//
+//	D3D11_SHADER_RESOURCE_VIEW_DESC resViewDesc;
+//	ZeroMemory(&resViewDesc, sizeof(resViewDesc));
+//	resViewDesc.Format = bthTexDesc.Format;
+//	resViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+//	resViewDesc.Texture2D.MipLevels = bthTexDesc.MipLevels;
+//	resViewDesc.Texture2D.MostDetailedMip = 0;
+//	gDevice->CreateShaderResourceView(gTexture, &resViewDesc, &gTextureView);
+//	
+//}
 
 void CreateShaders()
 {
@@ -164,16 +169,17 @@ void CreateShaders()
 		0,				// effect compile options
 		&pVS,			// double pointer to ID3DBlob		
 		nullptr			// pointer for Error Blob messages.
-		// how to use the Error blob, see here
-		// https://msdn.microsoft.com/en-us/library/windows/desktop/hh968107(v=vs.85).aspx
+						// how to use the Error blob, see here
+						// https://msdn.microsoft.com/en-us/library/windows/desktop/hh968107(v=vs.85).aspx
 		);
 
 	gDevice->CreateVertexShader(pVS->GetBufferPointer(), pVS->GetBufferSize(), nullptr, &gVertexShader);
-	
+
 	//create input layout (verified using vertex shader)
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		/*{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },*/
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
@@ -191,72 +197,163 @@ void CreateShaders()
 		0,				// effect compile options
 		&pPS,			// double pointer to ID3DBlob		
 		nullptr			// pointer for Error Blob messages.
-		// how to use the Error blob, see here
-		// https://msdn.microsoft.com/en-us/library/windows/desktop/hh968107(v=vs.85).aspx
+						// how to use the Error blob, see here
+						// https://msdn.microsoft.com/en-us/library/windows/desktop/hh968107(v=vs.85).aspx
 		);
 
 	gDevice->CreatePixelShader(pPS->GetBufferPointer(), pPS->GetBufferSize(), nullptr, &gPixelShader);
 	// we do not need anymore this COM object, so we release it.
 	pPS->Release();
 
-	//create geometry shader
-	ID3DBlob* pGS = nullptr;
-	D3DCompileFromFile(
-		L"Geometry.hlsl", // filename
-		nullptr,		// optional macros
-		nullptr,		// optional include files
-		"GS_main",		// entry point
-		"gs_4_0",		// shader model (target)
-		0,				// shader compile options
-		0,				// effect compile options
-		&pGS,			// double pointer to ID3DBlob		
-		nullptr			// pointer for Error Blob messages.
-		);
+	////create geometry shader
+	//ID3DBlob* pGS = nullptr;
+	//D3DCompileFromFile(
+	//	L"Geometry.hlsl", // filename
+	//	nullptr,		// optional macros
+	//	nullptr,		// optional include files
+	//	"GS_main",		// entry point
+	//	"gs_4_0",		// shader model (target)
+	//	0,				// shader compile options
+	//	0,				// effect compile options
+	//	&pGS,			// double pointer to ID3DBlob		
+	//	nullptr			// pointer for Error Blob messages.
+	//	);
 
-	gDevice->CreateGeometryShader(pGS->GetBufferPointer(), pGS->GetBufferSize(), nullptr, &gGeometryShader);
-	pGS->Release();
+	//gDevice->CreateGeometryShader(pGS->GetBufferPointer(), pGS->GetBufferSize(), nullptr, &gGeometryShader);
+	//pGS->Release();
+}
+
+struct FBXData
+{
+	float pos[3];
+	float nor[3];
+	float uv[2];
+};
+
+FbxManager* myManager = nullptr;
+
+HRESULT LoadFBX(std::vector<FBXData>* outVertexVector)
+{
+	if (myManager == nullptr)
+	{
+		myManager = FbxManager::Create();
+
+		FbxIOSettings* myIOsettings = FbxIOSettings::Create(myManager, IOSROOT);
+
+		myManager->SetIOSettings(myIOsettings);
+	}
+
+	FbxImporter* myImporter = FbxImporter::Create(myManager, "");
+	FbxScene* myScene = FbxScene::Create(myManager, "");
+
+	bool failCheck = myImporter->Initialize("D:/test2.fbx", -1, myManager->GetIOSettings());
+
+	(*(myManager->GetIOSettings())).SetBoolProp(IMP_FBX_TEXTURE, false);
+	(*(myManager->GetIOSettings())).SetBoolProp(IMP_FBX_ANIMATION, false);
+
+	if (!failCheck) return E_FAIL;
+
+	failCheck = myImporter->Import(myScene);
+	OutputDebugStringA(myImporter->GetStatus().GetErrorString());
+
+	if (!failCheck) return E_FAIL;
+
+	myImporter->Destroy();
+
+	FbxNode* myRootNode = myScene->GetRootNode();
+
+	if (myRootNode)
+	{
+		for (int i = 0; i < myRootNode->GetChildCount(); i++)
+		{
+			FbxNode* myChildNode = myRootNode->GetChild(i);
+
+			if (myChildNode->GetNodeAttribute() == NULL)
+				continue;
+
+			FbxNodeAttribute::EType AttributeType = myChildNode->GetNodeAttribute()->GetAttributeType();
+
+			if (AttributeType != FbxNodeAttribute::eMesh)
+				continue;
+
+			FbxMesh* myMesh = (FbxMesh*)myChildNode->GetNodeAttribute();
+
+			FbxVector4* pVertices = myMesh->GetControlPoints(); //A control point is an XYZ coordinate, it is synonym of vertex. 
+			int* pIndices = myMesh->GetPolygonVertices(); //Get the indices of the control points. 
+
+			for (int polygons = 0; polygons < myMesh->GetPolygonCount(); polygons++)
+			{
+				int numberVertices = myMesh->GetPolygonSize(polygons);
+
+				assert(numberVertices == 3);
+
+				for (int vertices = 0; vertices < numberVertices; vertices++)
+				{
+					int controlPointLocation = myMesh->GetPolygonVertex(polygons, vertices);
+
+					FBXData data;
+
+					data.pos[0] = (float)pVertices[controlPointLocation].mData[0];
+					data.pos[1] = (float)pVertices[controlPointLocation].mData[1];
+					data.pos[2] = (float)pVertices[controlPointLocation].mData[2];
+
+					//How can I get all the indices and send them to my array in the FBXData struct? 
+
+					outVertexVector->push_back(data);
+				}
+			}
+		}
+	}
+
+	return S_OK;
 }
 
 void CreateTriangleData()
 {
-	struct TriangleVertex
-	{
-		float x, y, z;
-		float u, v;
-	};
+	//struct TriangleVertex
+	//{
+	//	float x, y, z;
+	//	float u, v;
+	//};
 
-	TriangleVertex triangleVertices[6] =
-	{
-		-0.5f, 0.5f, 0.0f,	//v0 pos
-		0.0f, 0.0f,			//v0 uv
+	//TriangleVertex triangleVertices[6] =
+	//{
+	//	-0.5f, 0.5f, 0.0f,	//v0 pos
+	//	0.0f, 0.0f,			//v0 uv
 
-		0.5f, -0.5f, 0.0f,	//v1
-		1.0f, 1.0f,			//v1 uv
+	//	0.5f, -0.5f, 0.0f,	//v1
+	//	1.0f, 1.0f,			//v1 uv
 
-		-0.5f, -0.5f, 0.0f, //v2
-		0.0f, 1.0f,			//v2 uv
+	//	-0.5f, -0.5f, 0.0f, //v2
+	//	0.0f, 1.0f,			//v2 uv
 
-		// Triangle 2
+	//	// Triangle 2
 
-		0.5f, -0.5f, 0.0f,	//v0 pos
-		1.0f, 1.0f,			//v0 uv
+	//	0.5f, -0.5f, 0.0f,	//v0 pos
+	//	1.0f, 1.0f,			//v0 uv
 
-		-0.5f, 0.5f, 0.0f,	//v1
-		0.0f, 0.0f,			//v1 uv
+	//	-0.5f, 0.5f, 0.0f,	//v1
+	//	0.0f, 0.0f,			//v1 uv
 
-		0.5f, 0.5f, 0.0f,   //v2
-		1.0f, 0.0f			//v2 uv
+	//	0.5f, 0.5f, 0.0f,   //v2
+	//	1.0f, 0.0f			//v2 uv
 
-	};
+	//};
+
+	std::vector<FBXData> aVector;
+
+	LoadFBX(&aVector);
 
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(triangleVertices);
+	bufferDesc.ByteWidth = aVector.size() * sizeof(FBXData);
+
+	vertexVector = aVector.size();
 
 	D3D11_SUBRESOURCE_DATA data;
-	data.pSysMem = triangleVertices;
+	data.pSysMem = aVector.data();
 	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);
 }
 
@@ -283,11 +380,11 @@ void Render()
 	gDeviceContext->VSSetShader(gVertexShader, nullptr, 0);
 	gDeviceContext->HSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->DSSetShader(nullptr, nullptr, 0);
-	gDeviceContext->GSSetShader(gGeometryShader, nullptr, 0);
+	gDeviceContext->GSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
-	gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
+	//gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
 
-	UINT32 vertexSize = sizeof(float) * 5;
+	UINT32 vertexSize = sizeof(FBXData);
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
@@ -296,14 +393,14 @@ void Render()
 
 	UpdateConstantBuffer();
 
-	gDeviceContext->Draw(6, 0);
+	gDeviceContext->Draw(vertexVector, 0);
 }
 
-int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance); //1. Skapa fönster
-	
+
 	if (wndHandle)
 	{
 		CreateDirect3DContext(wndHandle); //2. Skapa och koppla SwapChain, Device och Device Context
@@ -316,7 +413,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 		CreateConstantBuffer(); //Calls the CreateConstantBuffer function
 
-		CreateTexture();
+								/*CreateTexture();*/
 
 		ShowWindow(wndHandle, nCmdShow);
 
@@ -340,13 +437,13 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
 
 		gDepthview->Release(); //Prevents Memory Leaks
-		gTextureView->Release(); //Prevents Memory Leaks
-		gTexture->Release(); //Prevents Memory Leaks
+							   /*gTextureView->Release();*/ //Prevents Memory Leaks
+															/*gTexture->Release();*/ //Prevents Memory Leaks
 
 		gVertexLayout->Release();
 		gVertexShader->Release();
 		gPixelShader->Release();
-		gGeometryShader->Release(); //Prevents Memory Leaks
+		//gGeometryShader->Release(); //Prevents Memory Leaks
 
 		gBackbufferRTV->Release();
 		gSwapChain->Release();
@@ -355,16 +452,16 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		DestroyWindow(wndHandle);
 	}
 
-	return (int) msg.wParam;
+	return (int)msg.wParam;
 }
 
 HWND InitWindow(HINSTANCE hInstance)
 {
 	WNDCLASSEX wcex = { 0 };
-	wcex.cbSize = sizeof(WNDCLASSEX); 
-	wcex.style          = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc    = WndProc;
-	wcex.hInstance      = hInstance;
+	wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WndProc;
+	wcex.hInstance = hInstance;
 	wcex.lpszClassName = L"BTH_D3D_DEMO";
 	if (!RegisterClassEx(&wcex))
 		return false;
@@ -388,13 +485,13 @@ HWND InitWindow(HINSTANCE hInstance)
 	return handle;
 }
 
-LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	switch (message) 
+	switch (message)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		break;		
+		break;
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
@@ -416,7 +513,7 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 	scd.SampleDesc.Count = 4;                               // how many multisamples
 	scd.Windowed = TRUE;                                    // windowed/full-screen mode
 
-	// create a device, device context and swap chain using the information in the scd struct
+															// create a device, device context and swap chain using the information in the scd struct
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(NULL,
 		D3D_DRIVER_TYPE_HARDWARE,
 		NULL,
@@ -442,8 +539,9 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 
 		CreateDepthBuffer(); //Calls the CreateDepthBuffer function
 
-		// set the render target as the back buffer
+							 // set the render target as the back buffer
 		gDeviceContext->OMSetRenderTargets(1, &gBackbufferRTV, gDepthview);
 	}
 	return hr;
 }
+
