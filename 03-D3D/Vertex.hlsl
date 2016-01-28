@@ -1,13 +1,14 @@
 struct VS_IN
 {
 	float3 Pos : POSITION;
-	/*float2 Tex : TEXCOORD;*/
+	float3 Nor : NORMAL;
+	float2 Tex : TEXCOORD;
 };
 
 struct VS_OUT
 {
 	float4 Pos : SV_POSITION;
-	/*float2 Tex : TEXCOORD;*/
+	float2 Tex : TEXCOORD;
 };
 
 //-----------------------------------------------------------------------------------------

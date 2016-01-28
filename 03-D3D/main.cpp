@@ -35,13 +35,14 @@ ID3D11ShaderResourceView* gTextureView = nullptr;
 ID3D11Texture2D *gTexture = NULL;
 
 ID3D11Buffer* gVertexBuffer = nullptr;
-int vertexVector = 0;
 ID3D11Buffer* gConstantBuffer = nullptr;
 
 ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 //ID3D11GeometryShader* gGeometryShader = nullptr;
+
+int vertexVector = 0;
 
 struct VS_CONSTANT_BUFFER
 {
@@ -76,7 +77,7 @@ void UpdateConstantBuffer()
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-	rotation += 0.1f;
+	rotation += 0.01f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
 
@@ -178,8 +179,9 @@ void CreateShaders()
 	//create input layout (verified using vertex shader)
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		/*{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },*/
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0   },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		/*{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
@@ -226,7 +228,7 @@ void CreateShaders()
 struct FBXData
 {
 	float pos[3];
-	float nor[3];
+	int nor[3];
 	float uv[2];
 };
 
@@ -246,7 +248,7 @@ HRESULT LoadFBX(std::vector<FBXData>* outVertexVector)
 	FbxImporter* myImporter = FbxImporter::Create(myManager, "");
 	FbxScene* myScene = FbxScene::Create(myManager, "");
 
-	bool failCheck = myImporter->Initialize("D:/test2.fbx", -1, myManager->GetIOSettings());
+	bool failCheck = myImporter->Initialize("F:/test.fbx", -1, myManager->GetIOSettings());
 
 	(*(myManager->GetIOSettings())).SetBoolProp(IMP_FBX_TEXTURE, false);
 	(*(myManager->GetIOSettings())).SetBoolProp(IMP_FBX_ANIMATION, false);
@@ -282,16 +284,17 @@ HRESULT LoadFBX(std::vector<FBXData>* outVertexVector)
 
 			FbxGeometryElementNormal* normalElement = myMesh->GetElementNormal();
 	
-			for (int polygons = 0; polygons < myMesh->GetPolygonCount(); polygons++)
+			for (int polygonsIndex = 0; polygonsIndex < myMesh->GetPolygonCount(); polygonsIndex++)
 			{
-				int numberVertices = myMesh->GetPolygonSize(polygons);
+				int polygonsize = myMesh->GetPolygonSize(polygonsIndex);
+				int indexPolygonSize = 0;
 
-				assert(numberVertices == 3);
+				assert(polygonsize == 3);
 
-				for (int vertices = 0; vertices < numberVertices; vertices++)
+				for (int vertices = 0; vertices < polygonsize; vertices++)
 				{
 					FBXData data;
-					int controlPointLocation = myMesh->GetPolygonVertex(polygons, vertices);
+					int controlPointLocation = myMesh->GetPolygonVertex(polygonsIndex, vertices);
 
 					data.pos[0] = (float)pVertices[controlPointLocation].mData[0];
 					data.pos[1] = (float)pVertices[controlPointLocation].mData[1];
@@ -305,56 +308,55 @@ HRESULT LoadFBX(std::vector<FBXData>* outVertexVector)
 
 							if (normalElement->GetReferenceMode() == FbxGeometryElement::eDirect)
 							{
-								normalIndex = polygons;
+								normalIndex = indexPolygonSize;
 
+								FbxVector4 normal = normalElement->GetDirectArray().GetAt(normalIndex);
 
+								data.nor[0] = normal[0];
+								data.nor[1] = normal[1];
+								data.nor[2] = normal[2];
 							}
 						}
 					}
 
-					//How can I get all the indices and send them to my array in the FBXData struct? 
+					FbxStringList UVSetNameList;
+					myMesh->GetUVSetNames(UVSetNameList);
+
+					for (int UVSetIndex = 0; UVSetIndex < UVSetNameList.GetCount(); UVSetIndex++)
+					{
+						const char* UVSetName = UVSetNameList.GetStringAt(UVSetIndex);
+
+						const FbxGeometryElementUV* UVElement = myMesh->GetElementUV(UVSetName);
+
+						if (UVElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex)
+						{
+							FbxVector2 UVValue;
+
+							bool useIndex = UVElement->GetReferenceMode() == FbxGeometryElement::eIndexToDirect;
+
+							int UVIndex = useIndex ? UVElement->GetIndexArray().GetAt(controlPointLocation) : controlPointLocation;
+
+							UVValue = UVElement->GetDirectArray().GetAt(UVIndex);
+
+							myMesh->GetElementUVCount();
+
+							data.uv[0] = UVValue[0];
+							data.uv[1] = UVValue[1];
+						}
+					}
 
 					outVertexVector->push_back(data);
 				}
+				
+				}
 			}
 		}
-	}
 
 	return S_OK;
 }
 
 void CreateTriangleData()
 {
-	//struct TriangleVertex
-	//{
-	//	float x, y, z;
-	//	float u, v;
-	//};
-
-	//TriangleVertex triangleVertices[6] =
-	//{
-	//	-0.5f, 0.5f, 0.0f,	//v0 pos
-	//	0.0f, 0.0f,			//v0 uv
-
-	//	0.5f, -0.5f, 0.0f,	//v1
-	//	1.0f, 1.0f,			//v1 uv
-
-	//	-0.5f, -0.5f, 0.0f, //v2
-	//	0.0f, 1.0f,			//v2 uv
-
-	//	// Triangle 2
-
-	//	0.5f, -0.5f, 0.0f,	//v0 pos
-	//	1.0f, 1.0f,			//v0 uv
-
-	//	-0.5f, 0.5f, 0.0f,	//v1
-	//	0.0f, 0.0f,			//v1 uv
-
-	//	0.5f, 0.5f, 0.0f,   //v2
-	//	1.0f, 0.0f			//v2 uv
-
-	//};
-
 	std::vector<FBXData> aVector;
 
 	LoadFBX(&aVector);
