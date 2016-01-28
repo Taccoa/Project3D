@@ -71,13 +71,13 @@ void UpdateConstantBuffer()
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-	rotation += 0.1f;
+	rotation += 0.01f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
 
-	world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
+	//world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
 	view = XMMatrixLookAtLH(Vector3(0, 0, -2), Vector3(0, 0, 0), Vector3(0, 1, 0));
-	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
+	projection = XMMatrixPerspectiveFovLH(float(3.1415 * 0.45), float(640.0 / 480.0), float(0.5), float(20));
 
 	worldViewProjection = world * view * projection;
 	worldViewProjection = worldViewProjection.Transpose();
@@ -259,6 +259,7 @@ void CreateTriangleData()
 	data.pSysMem = triangleVertices;
 	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);
 }
+
 
 void SetViewport()
 {

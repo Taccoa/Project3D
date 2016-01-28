@@ -23,5 +23,5 @@ float4 PS_main(GS_OUT input) : SV_Target
 
 	float4 rt = float4((lightIntensity * (diffuseLight)) , 1.0f); //Calculates the Light Intensity time the Diffuse Light
 
-	return rt;
+	return (1, 1, 1, 1);
 };

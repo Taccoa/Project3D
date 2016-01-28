@@ -42,13 +42,13 @@ void GS_main(
 		output.Tex = input[i].Tex;
 		outputStream.Append(output);
 	}
-	outputStream.RestartStrip();
-	for (uint i = 0; i < 3; i++)
+	//outputStream.RestartStrip();
+	/*for (uint i = 0; i < 3; i++)
 	{
 		//Creates the second Quads Geometry
 		output.Pos = mul(input[i].Pos + float4(normal, 0), worldViewProj);
 		output.PosWorld = mul(input[i].Pos + float4(normal, 0), world);
 		output.Tex = input[i].Tex;
 		outputStream.Append(output);
-	}
+	}*/
 }
