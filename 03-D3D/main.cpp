@@ -124,37 +124,37 @@ void CreateDepthBuffer()
 
 	gDevice->CreateDepthStencilView(gDepthStencilBuffer, 0, &gDepthview);
 }
-//
-//void CreateTexture()
-//{
-//	D3D11_TEXTURE2D_DESC bthTexDesc;
-//	ZeroMemory(&bthTexDesc, sizeof(bthTexDesc));
-//	bthTexDesc.Width = BTH_IMAGE_WIDTH;
-//	bthTexDesc.Height = BTH_IMAGE_HEIGHT;
-//	bthTexDesc.MipLevels = bthTexDesc.ArraySize = 1;
-//	bthTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-//	bthTexDesc.SampleDesc.Count = 1;
-//	bthTexDesc.SampleDesc.Quality = 0;
-//	bthTexDesc.Usage = D3D11_USAGE_DEFAULT;
-//	bthTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-//	bthTexDesc.CPUAccessFlags = 0;
-//	bthTexDesc.MiscFlags = 0;
-//
-//	D3D11_SUBRESOURCE_DATA data;
-//	ZeroMemory(&data, sizeof(data));
-//	data.pSysMem = (void*)BTH_IMAGE_DATA;
-//	data.SysMemPitch = BTH_IMAGE_WIDTH * 4 * sizeof(char);
-//	gDevice->CreateTexture2D(&bthTexDesc, &data, &gTexture);
-//
-//	D3D11_SHADER_RESOURCE_VIEW_DESC resViewDesc;
-//	ZeroMemory(&resViewDesc, sizeof(resViewDesc));
-//	resViewDesc.Format = bthTexDesc.Format;
-//	resViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-//	resViewDesc.Texture2D.MipLevels = bthTexDesc.MipLevels;
-//	resViewDesc.Texture2D.MostDetailedMip = 0;
-//	gDevice->CreateShaderResourceView(gTexture, &resViewDesc, &gTextureView);
-//	
-//}
+
+void CreateTexture()
+{
+	D3D11_TEXTURE2D_DESC bthTexDesc;
+	ZeroMemory(&bthTexDesc, sizeof(bthTexDesc));
+	bthTexDesc.Width = BTH_IMAGE_WIDTH;
+	bthTexDesc.Height = BTH_IMAGE_HEIGHT;
+	bthTexDesc.MipLevels = bthTexDesc.ArraySize = 1;
+	bthTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	bthTexDesc.SampleDesc.Count = 1;
+	bthTexDesc.SampleDesc.Quality = 0;
+	bthTexDesc.Usage = D3D11_USAGE_DEFAULT;
+	bthTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	bthTexDesc.CPUAccessFlags = 0;
+	bthTexDesc.MiscFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA data;
+	ZeroMemory(&data, sizeof(data));
+	data.pSysMem = (void*)BTH_IMAGE_DATA;
+	data.SysMemPitch = BTH_IMAGE_WIDTH * 4 * sizeof(char);
+	gDevice->CreateTexture2D(&bthTexDesc, &data, &gTexture);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC resViewDesc;
+	ZeroMemory(&resViewDesc, sizeof(resViewDesc));
+	resViewDesc.Format = bthTexDesc.Format;
+	resViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	resViewDesc.Texture2D.MipLevels = bthTexDesc.MipLevels;
+	resViewDesc.Texture2D.MostDetailedMip = 0;
+	gDevice->CreateShaderResourceView(gTexture, &resViewDesc, &gTextureView);
+	
+}
 
 void CreateShaders()
 {
@@ -180,8 +180,8 @@ void CreateShaders()
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0   },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		/*{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
@@ -232,134 +232,286 @@ struct FBXData
 	float uv[2];
 };
 
-FbxManager* myManager = nullptr;
-
-HRESULT LoadFBX(std::vector<FBXData>* outVertexVector)
+void InitiSdkObjects(FbxManager*& pManager, FbxScene*& pScene)
 {
-	if (myManager == nullptr)
+	pManager = FbxManager::Create(); //Creates the Manager for FBX and is object allocator for almost all classes.
+
+	if (!pManager) //If the manager isn't initialized.
 	{
-		myManager = FbxManager::Create();
-
-		FbxIOSettings* myIOsettings = FbxIOSettings::Create(myManager, IOSROOT);
-
-		myManager->SetIOSettings(myIOsettings);
+		FBXSDK_printf("Error: Can't create FBX Manager!\n");
+		exit(1); //Exit the application.
 	}
 
-	FbxImporter* myImporter = FbxImporter::Create(myManager, "");
-	FbxScene* myScene = FbxScene::Create(myManager, "");
-
-	bool failCheck = myImporter->Initialize("F:/test.fbx", -1, myManager->GetIOSettings());
-
-	(*(myManager->GetIOSettings())).SetBoolProp(IMP_FBX_TEXTURE, false);
-	(*(myManager->GetIOSettings())).SetBoolProp(IMP_FBX_ANIMATION, false);
-
-	if (!failCheck) return E_FAIL;
-
-	failCheck = myImporter->Import(myScene);
-	OutputDebugStringA(myImporter->GetStatus().GetErrorString());
-
-	if (!failCheck) return E_FAIL;
-
-	myImporter->Destroy();
-
-	FbxNode* myRootNode = myScene->GetRootNode();
-
-	if (myRootNode)
+	else
 	{
-		for (int i = 0; i < myRootNode->GetChildCount(); i++)
+		FbxIOSettings* ios = FbxIOSettings::Create(pManager, IOSROOT); //Creates IO Settings object. Holds the settings for import/export settings.
+		pManager->SetIOSettings(ios);
+
+		pScene = FbxScene::Create(pManager, "Test Scene"); //Creates the scene. Object hold other objects imported from files.
+
+		if (!pScene) //If scene isn't initialized.
 		{
-			FbxNode* myChildNode = myRootNode->GetChild(i);
+			FBXSDK_printf("Error: Can't create FBX Scene\n");
+			exit(1); //Exit the application.
+		}
+	}
+}
 
-			if (myChildNode->GetNodeAttribute() == NULL)
-				continue;
+FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
+{
+	FbxImporter* myImporter = FbxImporter::Create(pManager, "My importer"); //Creates the importer to use with SDK.
 
-			FbxNodeAttribute::EType AttributeType = myChildNode->GetNodeAttribute()->GetAttributeType();
+	FbxMesh* myMesh = nullptr;
 
-			if (AttributeType != FbxNodeAttribute::eMesh)
-				continue;
-
-			FbxMesh* myMesh = (FbxMesh*)myChildNode->GetNodeAttribute();
-
-			FbxVector4* pVertices = myMesh->GetControlPoints(); //A control point is an XYZ coordinate, it is synonym of vertex. 
-
-			FbxGeometryElementNormal* normalElement = myMesh->GetElementNormal();
+	bool importStatus = myImporter->Initialize("D:/test3.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
 	
-			for (int polygonsIndex = 0; polygonsIndex < myMesh->GetPolygonCount(); polygonsIndex++)
+	if (!importStatus) //If the importer can't be initialized.
+	{
+		FBXSDK_printf("Error: Can't Initialize importer");
+		exit(1);
+	}
+
+	importStatus = myImporter->Import(pScene); //Import the created scene.
+
+	if (!importStatus) //If the scene can't be opened.
+	{
+		FBXSDK_printf("Errror: Cant import the created scene.");
+		exit(1);
+	}
+
+	myImporter->Destroy(); //Destroy the importer because it's no longer required.
+
+	FbxNode* RootNode = pScene->GetRootNode(); //Get the root node, which is a "handle for the FBX contents.
+
+	if (RootNode)
+	{
+		for (int i = 0; i < RootNode->GetChildCount(); i++)
+		{
+			FbxNode* ChildNode = RootNode->GetChild(i);
+
+			if (ChildNode->GetNodeAttribute() == NULL) 
+				continue;
+
+			FbxNodeAttribute::EType AttributeType = ChildNode->GetNodeAttribute()->GetAttributeType();
+
+			if (AttributeType != FbxNodeAttribute::eMesh) //Make sure that only meshes are processed.
+				continue;
+
+			myMesh = (FbxMesh*)ChildNode->GetNodeAttribute();
+		}
+	}
+	return myMesh;
+}
+
+void ImportVertices(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
+{
+	FbxVector4* vertices = pMesh->GetControlPoints();
+
+	for (int j = 0; j < pMesh->GetPolygonCount(); j++)
+	{
+		int numberVertices = pMesh->GetPolygonSize(j);
+		
+		assert(numberVertices == 3);
+
+		for (int i = 0; i < numberVertices; i++)
+		{
+			int ControlPointIndices = pMesh->GetPolygonVertex(j, i);
+
+			FBXData data;
+
+			data.pos[0] = (float)vertices[ControlPointIndices].mData[0];
+			data.pos[1] = (float)vertices[ControlPointIndices].mData[1];
+			data.pos[2] = (float)vertices[ControlPointIndices].mData[2];
+
+			outVertexVector->push_back(data);
+		}
+	}
+}
+
+void ImportNormals(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
+{
+	FbxGeometryElementNormal* normalElement = pMesh->GetElementNormal(); //Get the normal element of the mesh.
+
+	if (normalElement)
+	{
+		if (normalElement->GetMappingMode() == FbxGeometryElement::eByControlPoint) //Obtain normal of each vertex.
+		{
+			//Obtain the normals of each vertex, because the mapping mode of the normal element is by control point.
+			for (int vertexIndex = 0; vertexIndex < pMesh->GetControlPointsCount(); vertexIndex++)
 			{
-				int polygonsize = myMesh->GetPolygonSize(polygonsIndex);
-				int indexPolygonSize = 0;
+				int normalIndex = 0;
 
-				assert(polygonsize == 3);
-
-				for (int vertices = 0; vertices < polygonsize; vertices++)
+				//If reference mode is direct, it means that the normal index is the same as a vertex index.
+				if (normalElement->GetReferenceMode() == FbxGeometryElement::eDirect)
 				{
+					normalIndex = vertexIndex;
+				}
+
+				//If the reference mode is Index-to-Direct, it means that the normals are obtained by the Index-to-Direct.
+				if (normalElement->GetReferenceMode() == FbxGeometryElement::eIndexToDirect)
+				{
+					normalIndex = normalElement->GetIndexArray().GetAt(normalIndex);
+				}
+
+				FBXData data;
+
+				FbxVector4 normals = normalElement->GetDirectArray().GetAt(normalIndex); //Normals of each vertex is obtained.
+
+				data.nor[0] = normals.mData[0];
+				data.nor[1] = normals.mData[1];
+				data.nor[2] = normals.mData[2];
+
+				outVertexVector->push_back(data);
+			}
+
+		}
+
+		else if (normalElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex) //Get the normals by obtaining polygon-vertex.
+		{
+			int indexPolygonVertex = 0;
+
+			//Obtain normals of each polygon, because the mapping mode of normal element is by Polygon-Vertex.
+			for (int polygonIndex = 0; polygonIndex < pMesh->GetPolygonCount(); polygonIndex++)
+			{
+				int polygonSize = pMesh->GetPolygonSize(polygonIndex); //Get the polygon size, to know how many vertices in current polygon.
+
+				for (int i = 0; i < polygonSize; i++) //Obtain each vertex of the current polygon.
+				{
+					int normalIndex = 0;
+
+					//Reference mode is direct because the normal index is same as indexPolygonVertex.
+					if (normalElement->GetReferenceMode() == FbxGeometryElement::eDirect)
+					{
+						normalIndex = indexPolygonVertex;
+					}
+					//Reference mose is index-to-direct, which means getting normals by index-to-direct.
+					if (normalElement->GetReferenceMode() == FbxGeometryElement::eIndexToDirect)
+					{
+						normalIndex = normalElement->GetIndexArray().GetAt(indexPolygonVertex);
+					}
+
 					FBXData data;
-					int controlPointLocation = myMesh->GetPolygonVertex(polygonsIndex, vertices);
 
-					data.pos[0] = (float)pVertices[controlPointLocation].mData[0];
-					data.pos[1] = (float)pVertices[controlPointLocation].mData[1];
-					data.pos[2] = (float)pVertices[controlPointLocation].mData[2];
+					FbxVector4 normal = normalElement->GetDirectArray().GetAt(normalIndex); //Obtain normals of each polygon-vertex
 
-					if (normalElement)
-					{
-						if (normalElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex)
-						{
-							int normalIndex = 0;
-
-							if (normalElement->GetReferenceMode() == FbxGeometryElement::eDirect)
-							{
-								normalIndex = indexPolygonSize;
-
-								FbxVector4 normal = normalElement->GetDirectArray().GetAt(normalIndex);
-
-								data.nor[0] = normal[0];
-								data.nor[1] = normal[1];
-								data.nor[2] = normal[2];
-							}
-						}
-					}
-
-					FbxStringList UVSetNameList;
-					myMesh->GetUVSetNames(UVSetNameList);
-
-					for (int UVSetIndex = 0; UVSetIndex < UVSetNameList.GetCount(); UVSetIndex++)
-					{
-						const char* UVSetName = UVSetNameList.GetStringAt(UVSetIndex);
-
-						const FbxGeometryElementUV* UVElement = myMesh->GetElementUV(UVSetName);
-
-						if (UVElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex)
-						{
-							FbxVector2 UVValue;
-
-							bool useIndex = UVElement->GetReferenceMode() == FbxGeometryElement::eIndexToDirect;
-
-							int UVIndex = useIndex ? UVElement->GetIndexArray().GetAt(controlPointLocation) : controlPointLocation;
-
-							UVValue = UVElement->GetDirectArray().GetAt(UVIndex);
-
-							myMesh->GetElementUVCount();
-
-							data.uv[0] = UVValue[0];
-							data.uv[1] = UVValue[1];
-						}
-					}
+					data.nor[0] = normal.mData[0];
+					data.nor[1] = normal.mData[1];
+					data.nor[2] = normal.mData[2];
 
 					outVertexVector->push_back(data);
-				}
-				
+
+					indexPolygonVertex++;
 				}
 			}
 		}
+	}
+}
 
-	return S_OK;
+void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
+{
+	FbxStringList UVSetNameList; //Obtain the UV set names
+	pMesh->GetUVSetNames(UVSetNameList); 
+
+	//Loop through all the uv sets 
+	for (int UVSetIndex = 0; UVSetIndex < UVSetNameList.GetCount(); UVSetIndex++)
+	{
+		const char* UVSetName = UVSetNameList.GetStringAt(UVSetIndex); //Obtain UVSetIndex UV-set
+		const FbxGeometryElementUV* UVElement = pMesh->GetElementUV(UVSetName);
+
+		if (!UVElement)
+			continue;
+
+		//Only support mapping modes "eByPolygonVertex" and "eByControlPoint".
+		if (UVElement->GetMappingMode() != FbxGeometryElement::eByPolygonVertex &&
+			UVElement->GetMappingMode() != FbxGeometryElement::eByControlPoint)
+			return; 
+
+		//Index array, which holds the index referenced to UV data
+		bool useIndex = UVElement->GetReferenceMode() != FbxGeometryElement::eIndexToDirect;
+		int indexCount = (useIndex) ? UVElement->GetIndexArray().GetCount() : 0;
+
+		//Loop through the data by polygon
+		const int polyCount = pMesh->GetPolygonCount();
+
+		//Obtain UV:s with Mapping Mode "eByControlPoint".
+		if (UVElement->GetMappingMode() == FbxGeometryElement::eByControlPoint)
+		{
+			for (int polyIndex = 0; polyIndex < polyCount; ++polyIndex)
+			{
+				//Create the max index array, which is required to pass into MakePoly.
+				const int polySize = pMesh->GetPolygonSize(polyIndex);
+
+				for (int vertexIndex = 0; vertexIndex < polySize; ++vertexIndex)
+				{
+					FbxVector2 UVs;
+
+					int polyVertexIndex = pMesh->GetPolygonVertex(polyIndex, vertexIndex); //Obtain index of the current vertex in a control points array.
+
+					int UVIndex = useIndex ? UVElement->GetIndexArray().GetAt(polyIndex) : polyVertexIndex; // UV Index is depending on reference mode.
+
+					UVs = UVElement->GetDirectArray().GetAt(UVIndex);
+
+					FBXData data;
+
+					data.uv[0] = UVs.mData[0];
+					data.uv[1] = UVs.mData[1];
+
+					outVertexVector->push_back(data);
+				}
+
+			}
+		}
+
+		//Obtain UV:s with Mapping Mode "eByPolygonVertex".
+		else if (UVElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex)
+		{
+			int polyIndexCount = 0;
+			for (int polyIndex = 0; polyIndex < polyIndexCount; ++polyIndex)
+			{
+				//Create the max index array that is required to pass into MakePoly
+				const int polySize = pMesh->GetPolygonSize(polyIndex);
+
+				for (int vertexIndex = 0; vertexIndex < polySize; ++vertexIndex)
+				{
+					if (polyIndexCount < indexCount)
+					{
+						FbxVector2 UVs;
+
+						int UVIndex = useIndex ? UVElement->GetIndexArray().GetAt(polyIndexCount) : polyIndexCount; //UV Index depends on reference mode.
+
+						UVs = UVElement->GetDirectArray().GetAt(UVIndex);
+
+						FBXData data;
+
+						data.uv[0] = UVs.mData[0];
+						data.uv[1] = UVs.mData[1];
+
+						//outVertexVector->push_back(data);
+
+						polyIndexCount++;
+					}
+				}
+			}
+		}
+	}
 }
 
 void CreateTriangleData()
 {
 	std::vector<FBXData> aVector;
 
-	LoadFBX(&aVector);
+	FbxManager* myManager = nullptr;	//Initialize both the manager and scene as nullptrs.
+	FbxScene* myScene = nullptr;
+	
+	InitiSdkObjects(myManager, myScene);	//Initialize all SDK objects for FBX import. 
+
+	FbxMesh* aMesh = LoadScene(myManager, myScene);		//Import the scene and also return the mesh from the FBX file.
+
+	ImportVertices(aMesh, &aVector);	//Import vertices from FBX. 
+
+	ImportNormals(aMesh, &aVector);		//Import normals from FBX. 
+
+	ImportUV(aMesh, &aVector);			//Import UV:s from FBX.
 
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
@@ -429,8 +581,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		CreateTriangleData(); //5. Definiera triangelvertiser, 6. Skapa vertex buffer, 7. Skapa input layout
 
 		CreateConstantBuffer(); //Calls the CreateConstantBuffer function
-
-								/*CreateTexture();*/
+		
+		CreateTexture();
 
 		ShowWindow(wndHandle, nCmdShow);
 

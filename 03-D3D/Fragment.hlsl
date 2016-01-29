@@ -3,23 +3,28 @@ SamplerState sampAni;
 struct PS_IN
 {
 	float4 Pos : SV_POSITION;
+	float3 Nor : NORMAL;
 	float2 Tex : TEXCOORD;
+	float4 wPos : POSITION;
+	float3 Col : COLOR;
 };
 
 float4 PS_main(PS_IN input) : SV_Target
 {
 	//float4 lightPosition = float4(0.0, 0.0, -10.0, 0.0);
-	//float3 lightIntensity = float3(1.0, 1.0, 1.0);
-
-	//float4 s = normalize(lightPosition - input.PosWorld); //Distance between the Object and the Light
-
-	//float3 Kd = txDiffuse.Sample(sampAni, input.Tex).xyz; //Gets the texture and puts it with the UV Coordinates on the Quad
+	//float3 lightSourceIntensity = float3(1.0, 1.0, 1.0);
 
 	//input.Nor = normalize(input.Nor);
 
-	//float3 diffuseLight = Kd * max(dot(s, input.Nor), 0.0f); //Calculates the Diffuse Light by taking "the Alpha" Angle times Kd
+	//float4 s = normalize(lightPosition - input.wPos); //The direction from the surface to the light source.
 
-	//float4 rt = float4((lightIntensity * (diffuseLight)) , 1.0f); //Calculates the Light Intensity time the Diffuse Light
+	//float3 Kd = txDiffuse.Sample(sampAni, input.Col).xyz;
 
-	return float4(1, 0, 0, 0);
+	//float3 diffuseLight = Kd * max(dot(s, input.Nor), 0); //To calculate the diffuse.
+
+	//Finally the light source intensity is multiplied with (A + D + S), which now only have the diffuse.
+	//return float4(lightSourceIntensity * (diffuseLight), 1); 
+
+	return float4(0.5, 0.5, 1, 0);
+
 };
