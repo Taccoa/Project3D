@@ -3,7 +3,7 @@ struct VS_IN
 	float3 Pos : POSITION;
 	float3 Nor : NORMAL;
 	float2 Tex : TEXCOORD;
-	float3 Col : COLOR;
+	/*float3 Col : COLOR;*/
 };
 
 struct VS_OUT
@@ -12,7 +12,7 @@ struct VS_OUT
 	float3 Nor : NORMAL;
 	float2 Tex : TEXCOORD;
 	float4 WPos : POSITION; 
-	float3 Col : COLOR;
+	/*float3 Col : COLOR;*/
 };
 
 //-----------------------------------------------------------------------------------------

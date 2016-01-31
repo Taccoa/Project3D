@@ -6,7 +6,7 @@ struct PS_IN
 	float3 Nor : NORMAL;
 	float2 Tex : TEXCOORD;
 	float4 wPos : POSITION;
-	float3 Col : COLOR;
+	//float3 Col : COLOR;
 };
 
 float4 PS_main(PS_IN input) : SV_Target

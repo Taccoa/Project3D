@@ -77,13 +77,13 @@ void UpdateConstantBuffer()
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-	rotation += 0.01f;
+	rotation += 0.03f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
 
 	world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
-	view = XMMatrixLookAtLH(Vector3(0, 0, -2), Vector3(0, 0, 0), Vector3(0, 1, 0));
-	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
+	view = XMMatrixLookAtLH(Vector3(0, 10, -10), Vector3(0, 8, 0), Vector3(0, 1, 0));
+	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640 / 480.0), float(0.5), float(20));
 
 	worldViewProjection = world * view * projection;
 	worldViewProjection = worldViewProjection.Transpose();
@@ -177,11 +177,12 @@ void CreateShaders()
 	gDevice->CreateVertexShader(pVS->GetBufferPointer(), pVS->GetBufferSize(), nullptr, &gVertexShader);
 
 	//create input layout (verified using vertex shader)
+	
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0   },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		/*{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
@@ -263,7 +264,7 @@ FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
 
 	FbxMesh* myMesh = nullptr;
 
-	bool importStatus = myImporter->Initialize("D:/test3.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
+	bool importStatus = myImporter->Initialize("I:/test2.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
 	
 	if (!importStatus) //If the importer can't be initialized.
 	{
@@ -409,45 +410,40 @@ void ImportNormals(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 {
-	FbxStringList UVSetNameList; //Obtain the UV set names
-	pMesh->GetUVSetNames(UVSetNameList); 
+	FbxStringList UVSetNameList;
+	pMesh->GetUVSetNames(UVSetNameList);
 
-	//Loop through all the uv sets 
-	for (int UVSetIndex = 0; UVSetIndex < UVSetNameList.GetCount(); UVSetIndex++)
+	for (int setIndex = 0; setIndex < UVSetNameList.GetCount(); setIndex++)
 	{
-		const char* UVSetName = UVSetNameList.GetStringAt(UVSetIndex); //Obtain UVSetIndex UV-set
+		const char* UVSetName = UVSetNameList.GetStringAt(setIndex);
 		const FbxGeometryElementUV* UVElement = pMesh->GetElementUV(UVSetName);
 
 		if (!UVElement)
 			continue;
 
-		//Only support mapping modes "eByPolygonVertex" and "eByControlPoint".
 		if (UVElement->GetMappingMode() != FbxGeometryElement::eByPolygonVertex &&
 			UVElement->GetMappingMode() != FbxGeometryElement::eByControlPoint)
-			return; 
+			return;
 
-		//Index array, which holds the index referenced to UV data
-		bool useIndex = UVElement->GetReferenceMode() != FbxGeometryElement::eIndexToDirect;
-		int indexCount = (useIndex) ? UVElement->GetIndexArray().GetCount() : 0;
+		const bool useIndex = UVElement->GetReferenceMode() != FbxGeometryElement::eDirect &&
+			UVElement->GetReferenceMode() != FbxGeometryElement::eIndexToDirect;
+		const int indexCount = (useIndex) ? UVElement->GetIndexArray().GetCount() : 0;
 
-		//Loop through the data by polygon
 		const int polyCount = pMesh->GetPolygonCount();
 
-		//Obtain UV:s with Mapping Mode "eByControlPoint".
 		if (UVElement->GetMappingMode() == FbxGeometryElement::eByControlPoint)
 		{
 			for (int polyIndex = 0; polyIndex < polyCount; ++polyIndex)
 			{
-				//Create the max index array, which is required to pass into MakePoly.
 				const int polySize = pMesh->GetPolygonSize(polyIndex);
 
 				for (int vertexIndex = 0; vertexIndex < polySize; ++vertexIndex)
 				{
 					FbxVector2 UVs;
 
-					int polyVertexIndex = pMesh->GetPolygonVertex(polyIndex, vertexIndex); //Obtain index of the current vertex in a control points array.
+					int polyVertexIndex = pMesh->GetPolygonVertex(polyIndex, vertexIndex);
 
-					int UVIndex = useIndex ? UVElement->GetIndexArray().GetAt(polyIndex) : polyVertexIndex; // UV Index is depending on reference mode.
+					int UVIndex = useIndex ? UVElement->GetIndexArray().GetAt(polyVertexIndex) : polyVertexIndex;
 
 					UVs = UVElement->GetDirectArray().GetAt(UVIndex);
 
@@ -458,42 +454,41 @@ void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 					outVertexVector->push_back(data);
 				}
-
 			}
 		}
-
-		//Obtain UV:s with Mapping Mode "eByPolygonVertex".
 		else if (UVElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex)
 		{
 			int polyIndexCount = 0;
-			for (int polyIndex = 0; polyIndex < polyIndexCount; ++polyIndex)
+			for (int polyIndex = 0; polyIndex < polyCount; ++polyIndex)
 			{
-				//Create the max index array that is required to pass into MakePoly
 				const int polySize = pMesh->GetPolygonSize(polyIndex);
-
 				for (int vertexIndex = 0; vertexIndex < polySize; ++vertexIndex)
 				{
-					if (polyIndexCount < indexCount)
-					{
-						FbxVector2 UVs;
+					FbxVector2 UVs;
 
-						int UVIndex = useIndex ? UVElement->GetIndexArray().GetAt(polyIndexCount) : polyIndexCount; //UV Index depends on reference mode.
+					int UVIndex = useIndex ? UVElement->GetIndexArray().GetAt(polyIndex) : polyIndexCount;
 
-						UVs = UVElement->GetDirectArray().GetAt(UVIndex);
+					UVs = UVElement->GetDirectArray().GetAt(UVIndex);
 
-						FBXData data;
+					FBXData data;
 
-						data.uv[0] = UVs.mData[0];
-						data.uv[1] = UVs.mData[1];
+					data.uv[0] = UVs.mData[0];
+					data.uv[1] = UVs.mData[1];
 
-						//outVertexVector->push_back(data);
+					outVertexVector->push_back(data);
 
-						polyIndexCount++;
-					}
+					polyIndexCount++;
 				}
+
 			}
+
 		}
 	}
+}
+
+void ImportMaterial(FbxMesh* pMesh)
+{
+
 }
 
 void CreateTriangleData()
@@ -512,6 +507,8 @@ void CreateTriangleData()
 	ImportNormals(aMesh, &aVector);		//Import normals from FBX. 
 
 	ImportUV(aMesh, &aVector);			//Import UV:s from FBX.
+
+	ImportMaterial(aMesh);
 
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
