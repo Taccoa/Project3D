@@ -8,6 +8,7 @@
 #include <dinput.h>
 
 //http://www.braynzarsoft.net/viewtutorial/q16390-braynzar-soft-directx-11-tutorials
+//http://www.angelcode.com/dev/timefps/timefps.html
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -76,20 +77,10 @@ float rotz = 0;
 float scaleX = 1.0f;
 float scaleZ = 1.0f;
 
-XMMATRIX Rotationx;
-XMMATRIX Rotationz;
-
 XMMATRIX WVP;
-XMMATRIX cube1World;
-XMMATRIX cube2World;
 XMMATRIX camProjection;
 
 XMMATRIX d2dWorld;
-
-XMMATRIX Rotation;
-XMMATRIX Scale;
-XMMATRIX Translation;
-float rot = 0.01f;
 
 bool InitDirectInput(HINSTANCE hInstance);
 void DetectInput(double time);
@@ -105,8 +96,6 @@ int fps = 0;
 
 __int64 frameTimeOld = 0;
 double frameTime;
-
-void UpdateScene(double time);
 
 void StartTimer();
 double GetTime();
@@ -141,7 +130,6 @@ void UpdateConstantBuffer()
 	VS_CONSTANT_BUFFER* dataPtr;
 
 	Matrix world;
-	Matrix view;
 	Matrix projection;
 	Matrix worldViewProjection;
 
@@ -151,10 +139,9 @@ void UpdateConstantBuffer()
 	VS_CONSTANT_BUFFER vsCBuffer;
 
 	world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
-	view = XMMatrixLookAtLH(Vector3(0, 0, -2), Vector3(0, 0, 0), Vector3(0, 1, 0));
 	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
 
-	worldViewProjection = world * view * projection;
+	worldViewProjection = world * camView * projection;
 	worldViewProjection = worldViewProjection.Transpose();
 
 	world = world.Transpose();
@@ -347,31 +334,213 @@ void SetViewport()
 	gDeviceContext->RSSetViewports(1, &vp);
 }
 
-//-----------------------------------------------------------
-void UpdateCamera()
+void Render()
 {
-	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
-	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
-	camTarget = XMVector3Normalize(camTarget);
+	// clear the back buffer to a deep blue
+	float clearColor[] = { 0, 0, 0, 1 };
+	gDeviceContext->ClearRenderTargetView(gBackbufferRTV, clearColor);
 
-	XMMATRIX RotateYTempMatrix;
-	RotateYTempMatrix = XMMatrixRotationY(camPitch);
+	gDeviceContext->ClearDepthStencilView(gDepthview, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	camRight = XMVector3TransformCoord(DefaultRight, RotateYTempMatrix);
-	camUp = XMVector3TransformCoord(camUp, RotateYTempMatrix);
-	camForward = XMVector3TransformCoord(DefaultForward, RotateYTempMatrix);
+	gDeviceContext->VSSetShader(gVertexShader, nullptr, 0);
+	gDeviceContext->HSSetShader(nullptr, nullptr, 0);
+	gDeviceContext->DSSetShader(nullptr, nullptr, 0);
+	gDeviceContext->GSSetShader(gGeometryShader, nullptr, 0);
+	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
+	gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
 
-	camPosition += moveLeftRight*camRight;
-	camPosition += moveBackForward*camForward;
+	UINT32 vertexSize = sizeof(float) * 5;
+	UINT32 offset = 0;
+	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
-	moveLeftRight = 0.0f;
-	moveBackForward = 0.0f;
+	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	gDeviceContext->IASetInputLayout(gVertexLayout);
 
-	camTarget = camPosition + camTarget;
+	UpdateConstantBuffer();
 
-	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
+	gDeviceContext->Draw(6, 0);
 }
 
+int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
+{
+	MSG msg = { 0 };
+	HWND wndHandle = InitWindow(hInstance); //1. Skapa fönster
+	
+	//------------------------------------------------------
+	if (!InitDirectInput(hInstance))
+	{
+		MessageBox(0, L"Direct Input Initialization - Failed", L"Error", MB_OK);
+		return 0;
+	}
+	//------------------------------------------------------
+
+	if (wndHandle)
+	{
+		CreateDirect3DContext(wndHandle); //2. Skapa och koppla SwapChain, Device och Device Context
+
+		SetViewport(); //3. Sätt viewport
+
+		CreateShaders(); //4. Skapa vertex- och pixel-shaders
+
+		CreateTriangleData(); //5. Definiera triangelvertiser, 6. Skapa vertex buffer, 7. Skapa input layout
+
+		CreateConstantBuffer(); //Calls the CreateConstantBuffer function
+
+		CreateTexture();
+
+		ShowWindow(wndHandle, nCmdShow);
+
+		while (WM_QUIT != msg.message)
+		{
+			if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+			else
+			{
+				Render(); //8. Rendera
+
+				//----------------------------------------------------
+				frameCount++;
+				if (GetTime() > 1.0f)
+				{
+					fps = frameCount;
+					frameCount = 0;
+					StartTimer();
+				}
+
+				frameTime = GetFrameTime();
+
+				DetectInput(frameTime);
+				//----------------------------------------------------
+
+				
+
+				gSwapChain->Present(0, 0); //9. Växla front- och back-buffer
+			}
+		}
+
+		gVertexBuffer->Release();
+		gConstantBuffer->Release(); //Prevents Memory Leaks
+		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
+
+		gDepthview->Release(); //Prevents Memory Leaks
+		gTextureView->Release(); //Prevents Memory Leaks
+		gTexture->Release(); //Prevents Memory Leaks
+
+		gVertexLayout->Release();
+		gVertexShader->Release();
+		gPixelShader->Release();
+		gGeometryShader->Release(); //Prevents Memory Leaks
+
+		//------------------------------------------------
+		DIKeyboard->Unacquire();
+		DIMouse->Unacquire();
+		DirectInput->Release();
+		//------------------------------------------------
+
+		gBackbufferRTV->Release();
+		gSwapChain->Release();
+		gDevice->Release();
+		gDeviceContext->Release();
+		DestroyWindow(wndHandle);
+	}
+
+	return (int) msg.wParam;
+}
+
+HWND InitWindow(HINSTANCE hInstance)
+{
+	WNDCLASSEX wcex = { 0 };
+	wcex.cbSize = sizeof(WNDCLASSEX); 
+	wcex.style          = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc    = WndProc;
+	wcex.hInstance      = hInstance;
+	wcex.lpszClassName = L"BTH_D3D_DEMO";
+	if (!RegisterClassEx(&wcex))
+		return false;
+
+	RECT rc = { 0, 0, 640, 480 };
+	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
+
+	HWND handle = CreateWindow(
+		L"BTH_D3D_DEMO",
+		L"BTH Direct3D Demo",
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		rc.right - rc.left,
+		rc.bottom - rc.top,
+		nullptr,
+		nullptr,
+		hInstance,
+		nullptr);
+
+	return handle;
+}
+
+LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
+{
+	switch (message) 
+	{
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;		
+	}
+
+	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+HRESULT CreateDirect3DContext(HWND wndHandle)
+{
+	// create a struct to hold information about the swap chain
+	DXGI_SWAP_CHAIN_DESC scd;
+
+	// clear out the struct for use
+	ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
+
+	// fill the swap chain description struct
+	scd.BufferCount = 1;                                    // one back buffer
+	scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;     // use 32-bit color
+	scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;      // how swap chain is to be used
+	scd.OutputWindow = wndHandle;                           // the window to be used
+	scd.SampleDesc.Count = 4;                               // how many multisamples
+	scd.Windowed = TRUE;                                    // windowed/full-screen mode
+
+	// create a device, device context and swap chain using the information in the scd struct
+	HRESULT hr = D3D11CreateDeviceAndSwapChain(NULL,
+		D3D_DRIVER_TYPE_HARDWARE,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		D3D11_SDK_VERSION,
+		&scd,
+		&gSwapChain,
+		&gDevice,
+		NULL,
+		&gDeviceContext);
+
+	if (SUCCEEDED(hr))
+	{
+		// get the address of the back buffer
+		ID3D11Texture2D* pBackBuffer = nullptr;
+		gSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+
+		// use the back buffer address to create the render target
+		gDevice->CreateRenderTargetView(pBackBuffer, NULL, &gBackbufferRTV);
+		pBackBuffer->Release();
+
+		CreateDepthBuffer(); //Calls the CreateDepthBuffer function
+
+		// set the render target as the back buffer
+		gDeviceContext->OMSetRenderTargets(1, &gBackbufferRTV, gDepthview);
+	}
+	return hr;
+}
+
+//-----------------------------------------------------------
 bool InitDirectInput(HINSTANCE hInstance)
 {
 	hr = DirectInput8Create(hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&DirectInput, NULL);
@@ -387,6 +556,30 @@ bool InitDirectInput(HINSTANCE hInstance)
 	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
 
 	return true;
+}
+
+void UpdateCamera()
+{
+	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
+	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
+	camTarget = XMVector3Normalize(camTarget);
+
+	XMMATRIX RotateYTempMatrix;
+	RotateYTempMatrix = XMMatrixRotationY(camYaw);
+
+	camRight = XMVector3TransformCoord(DefaultRight, RotateYTempMatrix);
+	camUp = XMVector3TransformCoord(camUp, RotateYTempMatrix);
+	camForward = XMVector3TransformCoord(DefaultForward, RotateYTempMatrix);
+
+	camPosition += moveLeftRight*camRight;
+	camPosition += moveBackForward*camForward;
+
+	moveLeftRight = 0.0f;
+	moveBackForward = 0.0f;
+
+	camTarget = camPosition + camTarget;
+
+	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
 }
 
 void DetectInput(double time)
@@ -467,238 +660,4 @@ double GetFrameTime()
 
 	return float(tickCount) / countsPerSecond;
 }
-
-void UpdateScene(double time)
-{
-	rot += 1.0f * time;
-	if (rot > 6.28f)
-		rot = 0.0f;
-
-	cube1World = XMMatrixIdentity();
-
-	XMVECTOR rotxaxis = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	XMVECTOR rotzaxis = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-
-	Rotation = XMMatrixRotationAxis(rotyaxis, rot);
-	Rotationx = XMMatrixRotationAxis(rotxaxis, rot);
-	Rotationz = XMMatrixRotationAxis(rotzaxis, rot);
-	Translation = XMMatrixTranslation(0.0f, 0.0f, 4.0f);
-
-	cube1World = Translation * Rotation * Rotationx * Rotationz;
-
-	cube2World = XMMatrixIdentity();
-
-	Rotation = XMMatrixRotationAxis(rotyaxis, -rot);
-
-	Scale = XMMatrixScaling(scaleX, scaleZ, 1.3f);
-
-	cube2World = Rotation *Scale;
-}
 //-----------------------------------------------------------
-
-void Render()
-{
-	// clear the back buffer to a deep blue
-	float clearColor[] = { 0, 0, 0, 1 };
-	gDeviceContext->ClearRenderTargetView(gBackbufferRTV, clearColor);
-
-	gDeviceContext->ClearDepthStencilView(gDepthview, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-	gDeviceContext->VSSetShader(gVertexShader, nullptr, 0);
-	gDeviceContext->HSSetShader(nullptr, nullptr, 0);
-	gDeviceContext->DSSetShader(nullptr, nullptr, 0);
-	gDeviceContext->GSSetShader(gGeometryShader, nullptr, 0);
-	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
-	gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
-
-	UINT32 vertexSize = sizeof(float) * 5;
-	UINT32 offset = 0;
-	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
-
-	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	gDeviceContext->IASetInputLayout(gVertexLayout);
-
-	UpdateConstantBuffer();
-
-	gDeviceContext->Draw(6, 0);
-}
-
-int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
-{
-	MSG msg = { 0 };
-	HWND wndHandle = InitWindow(hInstance); //1. Skapa fönster
-	
-	if (wndHandle)
-	{
-		CreateDirect3DContext(wndHandle); //2. Skapa och koppla SwapChain, Device och Device Context
-
-		SetViewport(); //3. Sätt viewport
-
-		CreateShaders(); //4. Skapa vertex- och pixel-shaders
-
-		CreateTriangleData(); //5. Definiera triangelvertiser, 6. Skapa vertex buffer, 7. Skapa input layout
-
-		CreateConstantBuffer(); //Calls the CreateConstantBuffer function
-
-		CreateTexture();
-
-		ShowWindow(wndHandle, nCmdShow);
-
-		while (WM_QUIT != msg.message)
-		{
-			//------------------------------------------------------
-			if (!InitDirectInput(hInstance))
-			{
-				MessageBox(0, L"Direct Input Initialization - Failed", L"Error", MB_OK);
-				return 0;
-			}
-			//------------------------------------------------------
-
-			if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-			else
-			{
-				Render(); //8. Rendera
-
-				//----------------------------------------------------
-				frameCount++;
-				if (GetTime() > 1.0f)
-				{
-					fps = frameCount;
-					frameCount = 0;
-					StartTimer();
-				}
-
-				frameTime = GetFrameTime();
-
-				UpdateScene(frameTime);
-				//----------------------------------------------------
-
-				gSwapChain->Present(0, 0); //9. Växla front- och back-buffer
-			}
-		}
-
-		gVertexBuffer->Release();
-		gConstantBuffer->Release(); //Prevents Memory Leaks
-		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
-
-		gDepthview->Release(); //Prevents Memory Leaks
-		gTextureView->Release(); //Prevents Memory Leaks
-		gTexture->Release(); //Prevents Memory Leaks
-
-		gVertexLayout->Release();
-		gVertexShader->Release();
-		gPixelShader->Release();
-		gGeometryShader->Release(); //Prevents Memory Leaks
-
-		gBackbufferRTV->Release();
-		gSwapChain->Release();
-		gDevice->Release();
-		gDeviceContext->Release();
-		DestroyWindow(wndHandle);
-		//------------------------------------------------
-		DIKeyboard->Unacquire();
-		DIMouse->Unacquire();
-		DirectInput->Release();
-		//------------------------------------------------
-	}
-
-	return (int) msg.wParam;
-}
-
-HWND InitWindow(HINSTANCE hInstance)
-{
-	WNDCLASSEX wcex = { 0 };
-	wcex.cbSize = sizeof(WNDCLASSEX); 
-	wcex.style          = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc    = WndProc;
-	wcex.hInstance      = hInstance;
-	wcex.lpszClassName = L"BTH_D3D_DEMO";
-	if (!RegisterClassEx(&wcex))
-		return false;
-
-	RECT rc = { 0, 0, 640, 480 };
-	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-
-	HWND handle = CreateWindow(
-		L"BTH_D3D_DEMO",
-		L"BTH Direct3D Demo",
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		rc.right - rc.left,
-		rc.bottom - rc.top,
-		nullptr,
-		nullptr,
-		hInstance,
-		nullptr);
-
-	return handle;
-}
-
-LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
-{
-	switch (message) 
-	{
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		break;		
-	}
-
-	return DefWindowProc(hWnd, message, wParam, lParam);
-}
-
-HRESULT CreateDirect3DContext(HWND wndHandle)
-{
-	// create a struct to hold information about the swap chain
-	DXGI_SWAP_CHAIN_DESC scd;
-
-	// clear out the struct for use
-	ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
-
-	// fill the swap chain description struct
-	scd.BufferCount = 1;                                    // one back buffer
-	scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;     // use 32-bit color
-	scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;      // how swap chain is to be used
-	scd.OutputWindow = wndHandle;                           // the window to be used
-	scd.SampleDesc.Count = 4;                               // how many multisamples
-	scd.Windowed = TRUE;                                    // windowed/full-screen mode
-	//----------------------------------------
-	//scd.Windowed = FALSE;
-	//----------------------------------------
-
-	// create a device, device context and swap chain using the information in the scd struct
-	HRESULT hr = D3D11CreateDeviceAndSwapChain(NULL,
-		D3D_DRIVER_TYPE_HARDWARE,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		D3D11_SDK_VERSION,
-		&scd,
-		&gSwapChain,
-		&gDevice,
-		NULL,
-		&gDeviceContext);
-
-	if (SUCCEEDED(hr))
-	{
-		// get the address of the back buffer
-		ID3D11Texture2D* pBackBuffer = nullptr;
-		gSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-
-		// use the back buffer address to create the render target
-		gDevice->CreateRenderTargetView(pBackBuffer, NULL, &gBackbufferRTV);
-		pBackBuffer->Release();
-
-		CreateDepthBuffer(); //Calls the CreateDepthBuffer function
-
-		// set the render target as the back buffer
-		gDeviceContext->OMSetRenderTargets(1, &gBackbufferRTV, gDepthview);
-	}
-	return hr;
-}
