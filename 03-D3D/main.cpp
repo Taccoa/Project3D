@@ -36,11 +36,16 @@ ID3D11Texture2D *gTexture = NULL;
 
 ID3D11Buffer* gVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
+ID3D11Buffer* gMaterialBuffer = nullptr;
 
 ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 //ID3D11GeometryShader* gGeometryShader = nullptr;
+
+FbxManager* myManager = nullptr;	//Initialize both the manager and scene as nullptrs.
+FbxScene* myScene = nullptr;
+
 
 int vertexVector = 0;
 
@@ -48,7 +53,7 @@ struct VS_CONSTANT_BUFFER
 {
 	Matrix worldViewProj;
 	Matrix world;
-}; VS_CONSTANT_BUFFER;
+}; 
 
 void CreateConstantBuffer()
 {
@@ -79,10 +84,8 @@ void UpdateConstantBuffer()
 	static float rotation = 0;
 	rotation += 0.03f;
 
-	VS_CONSTANT_BUFFER vsCBuffer;
-
 	world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
-	view = XMMatrixLookAtLH(Vector3(0, 10, -10), Vector3(0, 8, 0), Vector3(0, 1, 0));
+	view = XMMatrixLookAtLH(Vector3(0, 0, -2), Vector3(0, 0, 0), Vector3(0, 1, 0));
 	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640 / 480.0), float(0.5), float(20));
 
 	worldViewProjection = world * view * projection;
@@ -180,8 +183,8 @@ void CreateShaders()
 	
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0   },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0   },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		/*{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
@@ -229,9 +232,38 @@ void CreateShaders()
 struct FBXData
 {
 	float pos[3];
-	int nor[3];
+	float nor[3];
 	float uv[2];
 };
+
+struct MaterialBuffer
+{
+	XMFLOAT3 ambient;
+	float transparency;
+	
+	XMFLOAT3 diffuse;
+	float shininess;
+
+	XMFLOAT3 specular;
+	float reflection;
+
+	XMFLOAT3 emissive;
+	float padding;
+};
+
+void CreateMaterialBuffer()
+{
+	D3D11_BUFFER_DESC desc;
+
+	desc.Usage = D3D11_USAGE_DYNAMIC;
+	desc.ByteWidth = sizeof(MaterialBuffer);
+	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	desc.MiscFlags = 0;
+	desc.StructureByteStride = 0;
+
+	gDevice->CreateBuffer(&desc, NULL, &gMaterialBuffer);
+}
 
 void InitiSdkObjects(FbxManager*& pManager, FbxScene*& pScene)
 {
@@ -264,7 +296,7 @@ FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
 
 	FbxMesh* myMesh = nullptr;
 
-	bool importStatus = myImporter->Initialize("I:/test2.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
+	bool importStatus = myImporter->Initialize("D:/test.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
 	
 	if (!importStatus) //If the importer can't be initialized.
 	{
@@ -276,7 +308,7 @@ FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
 
 	if (!importStatus) //If the scene can't be opened.
 	{
-		FBXSDK_printf("Errror: Cant import the created scene.");
+		FBXSDK_printf("Error: Cant import the created scene.");
 		exit(1);
 	}
 
@@ -354,15 +386,11 @@ void ImportNormals(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 					normalIndex = normalElement->GetIndexArray().GetAt(normalIndex);
 				}
 
-				FBXData data;
-
 				FbxVector4 normals = normalElement->GetDirectArray().GetAt(normalIndex); //Normals of each vertex is obtained.
 
-				data.nor[0] = normals.mData[0];
-				data.nor[1] = normals.mData[1];
-				data.nor[2] = normals.mData[2];
-
-				outVertexVector->push_back(data);
+				outVertexVector->at(vertexIndex).nor[0] = normals.mData[0];
+				outVertexVector->at(vertexIndex).nor[1] = normals.mData[1];
+				outVertexVector->at(vertexIndex).nor[2] = normals.mData[2];
 			}
 
 		}
@@ -391,20 +419,18 @@ void ImportNormals(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 						normalIndex = normalElement->GetIndexArray().GetAt(indexPolygonVertex);
 					}
 
-					FBXData data;
-
 					FbxVector4 normal = normalElement->GetDirectArray().GetAt(normalIndex); //Obtain normals of each polygon-vertex
 
-					data.nor[0] = normal.mData[0];
-					data.nor[1] = normal.mData[1];
-					data.nor[2] = normal.mData[2];
-
-					outVertexVector->push_back(data);
+					outVertexVector->at(indexPolygonVertex).nor[0] = normal.mData[0];
+					outVertexVector->at(indexPolygonVertex).nor[1] = normal.mData[1];
+					outVertexVector->at(indexPolygonVertex).nor[2] = normal.mData[2];
 
 					indexPolygonVertex++;
 				}
 			}
 		}
+
+		//Implement a if else for the mappingmode ByVertices.
 	}
 }
 
@@ -426,7 +452,8 @@ void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 			return;
 
 		const bool useIndex = UVElement->GetReferenceMode() != FbxGeometryElement::eDirect &&
-			UVElement->GetReferenceMode() != FbxGeometryElement::eIndexToDirect;
+			UVElement->GetReferenceMode() == FbxGeometryElement::eIndexToDirect;
+		
 		const int indexCount = (useIndex) ? UVElement->GetIndexArray().GetCount() : 0;
 
 		const int polyCount = pMesh->GetPolygonCount();
@@ -447,12 +474,8 @@ void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 					UVs = UVElement->GetDirectArray().GetAt(UVIndex);
 
-					FBXData data;
-
-					data.uv[0] = UVs.mData[0];
-					data.uv[1] = UVs.mData[1];
-
-					outVertexVector->push_back(data);
+					outVertexVector->at(vertexIndex).uv[0] = UVs.mData[0];
+					outVertexVector->at(vertexIndex).uv[1] = UVs.mData[1];
 				}
 			}
 		}
@@ -470,12 +493,8 @@ void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 					UVs = UVElement->GetDirectArray().GetAt(UVIndex);
 
-					FBXData data;
-
-					data.uv[0] = UVs.mData[0];
-					data.uv[1] = UVs.mData[1];
-
-					outVertexVector->push_back(data);
+					outVertexVector->at(polyIndexCount).uv[0] = UVs.mData[0];
+					outVertexVector->at(polyIndexCount).uv[1] = UVs.mData[1];
 
 					polyIndexCount++;
 				}
@@ -488,6 +507,99 @@ void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 void ImportMaterial(FbxMesh* pMesh)
 {
+	D3D11_MAPPED_SUBRESOURCE subr;
+
+	MaterialBuffer* test;
+
+	gDeviceContext->Map(gMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &subr);
+
+	test = (MaterialBuffer*)subr.pData;
+
+	int materialCount = 0;
+
+	if (pMesh)
+	{
+		materialCount = pMesh->GetNode()->GetMaterialCount();
+	}
+
+	if (materialCount > 0)
+	{
+		FbxPropertyT<FbxDouble3> ambient; 
+		FbxPropertyT<FbxDouble3> diffuse;
+		FbxPropertyT<FbxDouble3> specular; 
+		FbxPropertyT<FbxDouble3> emissive;
+
+		FbxPropertyT<FbxDouble> transparency;
+		FbxPropertyT<FbxDouble> shininess;
+		FbxPropertyT<FbxDouble> reflection; 
+
+
+		for (int materialIndex = 0; materialIndex < materialCount; materialIndex++)
+		{
+			FbxSurfaceMaterial* material = pMesh->GetNode()->GetMaterial(materialIndex);
+
+			FbxString materialName = material->GetName(); //To see what the name of the material is. 
+
+			if (material->GetClassId().Is(FbxSurfacePhong::ClassId))
+			{
+				ambient = ((FbxSurfacePhong*)material)->Ambient;
+				diffuse = ((FbxSurfacePhong*)material)->Diffuse;
+				specular = ((FbxSurfacePhong*)material)->Specular;
+				emissive = ((FbxSurfacePhong*)material)->Emissive;
+				
+				transparency = ((FbxSurfacePhong*)material)->TransparencyFactor;
+				shininess = ((FbxSurfacePhong*)material)->Shininess;
+				reflection = ((FbxSurfacePhong*)material)->ReflectionFactor;
+
+				test->ambient.x = ambient.Get()[0];
+				test->ambient.y = ambient.Get()[1];
+				test->ambient.z = ambient.Get()[2];
+
+				test->diffuse.x = diffuse.Get()[0];
+				test->diffuse.y = diffuse.Get()[1];
+				test->diffuse.z = diffuse.Get()[2];
+
+				test->emissive.x = emissive.Get()[0];
+				test->emissive.y = emissive.Get()[1];
+				test->emissive.z = emissive.Get()[2];
+
+				test->transparency = transparency.Get();
+				test->shininess = shininess.Get();
+				test->reflection = reflection.Get();
+			}
+
+			else if (material->GetClassId().Is(FbxSurfaceLambert::ClassId))
+			{
+				ambient = ((FbxSurfaceLambert*)material)->Ambient;
+				diffuse = ((FbxSurfaceLambert*)material)->Diffuse;
+				emissive = ((FbxSurfaceLambert*)material)->Emissive;
+				transparency = ((FbxSurfaceLambert*)material)->TransparencyFactor;
+
+				test->ambient.x = ambient.Get()[0];
+				test->ambient.y = ambient.Get()[1];
+				test->ambient.z = ambient.Get()[2];
+
+				test->diffuse.x = diffuse.Get()[0];
+				test->diffuse.y = diffuse.Get()[1];
+				test->diffuse.z = diffuse.Get()[2];
+
+				test->emissive.x = emissive.Get()[0];
+				test->emissive.y = emissive.Get()[1];
+				test->emissive.z = emissive.Get()[2];
+
+				test->transparency = transparency.Get();
+			}
+
+			else
+			{
+				FBXSDK_printf("Error: Unknown material.\n");
+			}
+		}
+	}
+
+	gDeviceContext->Unmap(gMaterialBuffer, 0);
+
+	gDeviceContext->PSSetConstantBuffers(0, 1, &gMaterialBuffer);
 
 }
 
@@ -495,9 +607,6 @@ void CreateTriangleData()
 {
 	std::vector<FBXData> aVector;
 
-	FbxManager* myManager = nullptr;	//Initialize both the manager and scene as nullptrs.
-	FbxScene* myScene = nullptr;
-	
 	InitiSdkObjects(myManager, myScene);	//Initialize all SDK objects for FBX import. 
 
 	FbxMesh* aMesh = LoadScene(myManager, myScene);		//Import the scene and also return the mesh from the FBX file.
@@ -507,8 +616,6 @@ void CreateTriangleData()
 	ImportNormals(aMesh, &aVector);		//Import normals from FBX. 
 
 	ImportUV(aMesh, &aVector);			//Import UV:s from FBX.
-
-	ImportMaterial(aMesh);
 
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
@@ -548,7 +655,7 @@ void Render()
 	gDeviceContext->DSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->GSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
-	//gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
+	gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
 
 	UINT32 vertexSize = sizeof(FBXData);
 	UINT32 offset = 0;
@@ -558,6 +665,12 @@ void Render()
 	gDeviceContext->IASetInputLayout(gVertexLayout);
 
 	UpdateConstantBuffer();
+
+	FbxMesh* aMesh = LoadScene(myManager, myScene);
+
+	ImportMaterial(aMesh);
+
+	gDeviceContext->PSSetConstantBuffers(0, 1, &gMaterialBuffer);
 
 	gDeviceContext->Draw(vertexVector, 0);
 }
@@ -578,6 +691,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		CreateTriangleData(); //5. Definiera triangelvertiser, 6. Skapa vertex buffer, 7. Skapa input layout
 
 		CreateConstantBuffer(); //Calls the CreateConstantBuffer function
+
+		CreateMaterialBuffer();
 		
 		CreateTexture();
 
@@ -600,6 +715,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 		gVertexBuffer->Release();
 		gConstantBuffer->Release(); //Prevents Memory Leaks
+		gMaterialBuffer->Release();
 		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
 
 		gDepthview->Release(); //Prevents Memory Leaks
