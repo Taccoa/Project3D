@@ -43,7 +43,6 @@ ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 ID3D11GeometryShader* gGeometryShader = nullptr;
 
-//-------------------------------------------------
 XMVECTOR DefaultForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR DefaultRight = XMVectorSet(1.0f,0.0f,0.0f,0.0f);
 XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
@@ -54,8 +53,6 @@ XMVECTOR camTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 XMMATRIX camRotationMatrix;
-XMMATRIX groundWorld;
-
 XMMATRIX camView;
 
 float moveLeftRight = 0.0f;
@@ -71,16 +68,6 @@ IDirectInputDevice8* DIMouse;
 
 DIMOUSESTATE mouseLastState;
 LPDIRECTINPUT8 DirectInput;
-
-float rotx = 0;
-float rotz = 0;
-float scaleX = 1.0f;
-float scaleZ = 1.0f;
-
-XMMATRIX WVP;
-XMMATRIX camProjection;
-
-XMMATRIX d2dWorld;
 
 bool InitDirectInput(HINSTANCE hInstance);
 void DetectInput(double time);
@@ -100,7 +87,6 @@ double frameTime;
 void StartTimer();
 double GetTime();
 double GetFrameTime();
-//-------------------------------------------------
 
 struct VS_CONSTANT_BUFFER
 {
@@ -366,13 +352,11 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance); //1. Skapa fönster
 	
-	//------------------------------------------------------
-	if (!InitDirectInput(hInstance))
+	if (!InitDirectInput(hInstance)) //We call our function and controlls that it does load
 	{
 		MessageBox(0, L"Direct Input Initialization - Failed", L"Error", MB_OK);
 		return 0;
 	}
-	//------------------------------------------------------
 
 	if (wndHandle)
 	{
@@ -401,44 +385,38 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			{
 				Render(); //8. Rendera
 
-				//----------------------------------------------------
-				frameCount++;
-				if (GetTime() > 1.0f)
+				frameCount++;					//Increases our frame count
+				if (GetTime() > 1.0f)			//Calls the GetTime function
 				{
 					fps = frameCount;
 					frameCount = 0;
-					StartTimer();
+					StartTimer();				//Calls the StartTimer function
 				}
 
-				frameTime = GetFrameTime();
+				frameTime = GetFrameTime();		//Stores the result of the GetFrameTime function
 
-				DetectInput(frameTime);
-				//----------------------------------------------------
-
-				
+				DetectInput(frameTime);			//Calls the DetectInput function
 
 				gSwapChain->Present(0, 0); //9. Växla front- och back-buffer
 			}
 		}
 
 		gVertexBuffer->Release();
-		gConstantBuffer->Release(); //Prevents Memory Leaks
+		gConstantBuffer->Release();		//Prevents Memory Leaks
 		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
 
-		gDepthview->Release(); //Prevents Memory Leaks
-		gTextureView->Release(); //Prevents Memory Leaks
-		gTexture->Release(); //Prevents Memory Leaks
+		gDepthview->Release();			//Prevents Memory Leaks
+		gTextureView->Release();		//Prevents Memory Leaks
+		gTexture->Release();			//Prevents Memory Leaks
 
 		gVertexLayout->Release();
 		gVertexShader->Release();
 		gPixelShader->Release();
-		gGeometryShader->Release(); //Prevents Memory Leaks
+		gGeometryShader->Release();		//Prevents Memory Leaks
 
-		//------------------------------------------------
-		DIKeyboard->Unacquire();
-		DIMouse->Unacquire();
-		DirectInput->Release();
-		//------------------------------------------------
+		DIKeyboard->Unacquire();		//We release controll over the device
+		DIMouse->Unacquire();			//We release controll over the device
+		DirectInput->Release();			//Prevents Memory Leaks
 
 		gBackbufferRTV->Release();
 		gSwapChain->Release();
@@ -540,19 +518,26 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 	return hr;
 }
 
-//-----------------------------------------------------------
 bool InitDirectInput(HINSTANCE hInstance)
 {
-	hr = DirectInput8Create(hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&DirectInput, NULL);
+	hr = DirectInput8Create(hInstance,	//This is the handle to the instance of our application
+		DIRECTINPUT_VERSION,			//This is the version of the direct input we want to use
+		IID_IDirectInput8,				//This is an identifier to the interface of direct input we want to use
+		(void**)&DirectInput,			//This is the returned pointer to our direct input object
+		NULL);							//This is used for COM aggregation
 
-	hr = DirectInput->CreateDevice(GUID_SysKeyboard, &DIKeyboard, NULL);
+	hr = DirectInput->CreateDevice(GUID_SysKeyboard,	//We enter the flag for the GUID (Globally Unique Identifiers) device we want to use
+		&DIKeyboard,									//We return a pointer to the created device
+		NULL);											//COM related
 
-	hr = DirectInput->CreateDevice(GUID_SysMouse, &DIMouse, NULL);
+	hr = DirectInput->CreateDevice(GUID_SysMouse,	//We enter the flag for the GUID (Globally Unique Identifiers) device we want to use
+		&DIMouse,									//We return a pointer to the created device
+		NULL);										//COM related
 
-	hr = DIKeyboard->SetDataFormat(&c_dfDIKeyboard);
+	hr = DIKeyboard->SetDataFormat(&c_dfDIKeyboard);	//Lets us tell the device what kind of input we are expecting
 	hr = DIKeyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
 
-	hr = DIMouse->SetDataFormat(&c_dfDIMouse);
+	hr = DIMouse->SetDataFormat(&c_dfDIMouse);			//Lets us tell the device what kind of input we are expecting
 	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
 
 	return true;
@@ -560,70 +545,67 @@ bool InitDirectInput(HINSTANCE hInstance)
 
 void UpdateCamera()
 {
-	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
-	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
-	camTarget = XMVector3Normalize(camTarget);
+	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);		//Updates the rotation matrix in pitch and yaw
+	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);		//Updates the target with the NEW rotation matrix
+	camTarget = XMVector3Normalize(camTarget);									//Normalizing
 
 	XMMATRIX RotateYTempMatrix;
-	RotateYTempMatrix = XMMatrixRotationY(camYaw);
+	RotateYTempMatrix = XMMatrixRotationY(camYaw);								//To keep our camera's forward and right vectors pointing only in the x and z axis
 
-	camRight = XMVector3TransformCoord(DefaultRight, RotateYTempMatrix);
-	camUp = XMVector3TransformCoord(camUp, RotateYTempMatrix);
-	camForward = XMVector3TransformCoord(DefaultForward, RotateYTempMatrix);
+	camRight = XMVector3TransformCoord(DefaultRight, RotateYTempMatrix);		//Transforms the vector using the RotateYTempMatrix
+	camUp = XMVector3TransformCoord(camUp, RotateYTempMatrix);					//Transforms the vector using the RotateYTempMatrix
+	camForward = XMVector3TransformCoord(DefaultForward, RotateYTempMatrix);	//Transforms the vector using the RotateYTempMatrix
 
-	camPosition += moveLeftRight*camRight;
-	camPosition += moveBackForward*camForward;
+	camPosition += moveLeftRight*camRight;										//Calculates the cameras NEW position in the right and left position
+	camPosition += moveBackForward*camForward;									//Calculates the cameras NEW position in the back and forward position
 
-	moveLeftRight = 0.0f;
-	moveBackForward = 0.0f;
+	moveLeftRight = 0.0f;														//Resets the movement
+	moveBackForward = 0.0f;														//Resets the movement
 
-	camTarget = camPosition + camTarget;
+	camTarget = camPosition + camTarget;										//Adds the position with the target
 
-	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
+	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);					//Stores the NEW View Matrix
 }
 
 void DetectInput(double time)
 {
 	DIMOUSESTATE mouseCurrState;
 
-	BYTE keyboardState[256];
+	BYTE keyboardState[256];	//Holds an array of all the possible keys that can be pressed
 
-	DIKeyboard->Acquire();
-	DIMouse->Acquire();
+	DIKeyboard->Acquire();		//We take controll over the device
+	DIMouse->Acquire();			//We take controll over the device
 
-	DIMouse->GetDeviceState(sizeof(DIMOUSESTATE), &mouseCurrState);
+	DIMouse->GetDeviceState(sizeof(DIMOUSESTATE), &mouseCurrState);				//We check if the mouse has moved
 
-	DIKeyboard->GetDeviceState(sizeof(keyboardState), (LPVOID)&keyboardState);
+	DIKeyboard->GetDeviceState(sizeof(keyboardState), (LPVOID)&keyboardState);	//We check if a key has been pressed
 
-	if (keyboardState[DIK_ESCAPE] & 0x80)
-		PostMessage(hwnd, WM_DESTROY, 0, 0);
+	float speed = 15.0f * time;				//This is the speed our camera will move when we reposition it every frame
 
-	float speed = 15.0f * time;
-
-	if (keyboardState[DIK_A] & 0x80)
+	if (keyboardState[DIK_A] & 0x80)		//We check if it was the A key that was pressed
 	{
-		moveLeftRight -= speed;
+		moveLeftRight -= speed;				//Moves the camera left
 	}
-	if (keyboardState[DIK_D] & 0x80)
+	if (keyboardState[DIK_D] & 0x80)		//We check if it was the D key that was pressed
 	{
-		moveLeftRight += speed;
+		moveLeftRight += speed;				//Moves the camera right
 	}
-	if (keyboardState[DIK_W] & 0x80)
+	if (keyboardState[DIK_W] & 0x80)		//We check if it was the W key that was pressed
 	{
-		moveBackForward += speed;
+		moveBackForward += speed;			//Moves the camera forward
 	}
-	if (keyboardState[DIK_S] & 0x80)
+	if (keyboardState[DIK_S] & 0x80)		//We check if it was the S key that was pressed
 	{
-		moveBackForward -= speed;
+		moveBackForward -= speed;			//Moves the camera back
 	}
-	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY))
+	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY)) //We check where the mouse are now
 	{
 		camYaw += mouseLastState.lX * 0.001f;
 		camPitch += mouseCurrState.lY * 0.001f;
 		mouseLastState = mouseCurrState;
 	}
 
-	UpdateCamera();
+	UpdateCamera();		//Call the UpdateCamera function
 
 	return;
 }
@@ -631,18 +613,18 @@ void DetectInput(double time)
 void StartTimer()
 {
 	LARGE_INTEGER frequencyCount;
-	QueryPerformanceFrequency(&frequencyCount);
+	QueryPerformanceFrequency(&frequencyCount);			//Gets the time in counts per second
 
-	countsPerSecond = double(frequencyCount.QuadPart);
+	countsPerSecond = double(frequencyCount.QuadPart);	//Stores the counts per second
 
-	QueryPerformanceCounter(&frequencyCount);
-	CounterStart = frequencyCount.QuadPart;
+	QueryPerformanceCounter(&frequencyCount);			//Gets the current time in counts
+	CounterStart = frequencyCount.QuadPart;				//Stores the start of the count
 }
 
 double GetTime()
 {
 	LARGE_INTEGER currentTime;
-	QueryPerformanceCounter(&currentTime);
+	QueryPerformanceCounter(&currentTime);				//Gets the current time in counts
 	return double(currentTime.QuadPart - CounterStart) / countsPerSecond;
 }
 
@@ -650,14 +632,13 @@ double GetFrameTime()
 {
 	LARGE_INTEGER currentTime;
 	__int64 tickCount;
-	QueryPerformanceCounter(&currentTime);
+	QueryPerformanceCounter(&currentTime);				//Gets the current time in counts
 
-	tickCount = currentTime.QuadPart - frameTimeOld;
-	frameTimeOld = currentTime.QuadPart;
+	tickCount = currentTime.QuadPart - frameTimeOld;	//Stores the time it took from the last frame to this frame
+	frameTimeOld = currentTime.QuadPart;				//Stores this frame as the next last frame
 
 	if (tickCount < 0.0f)
 		tickCount = 0.0f;
 
 	return float(tickCount) / countsPerSecond;
 }
-//-----------------------------------------------------------
