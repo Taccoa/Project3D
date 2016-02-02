@@ -20,10 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Fragment.hlsl">
+    <FxCompile Include="Vertex.hlsl">
       <Filter>Source Files</Filter>
     </FxCompile>
-    <FxCompile Include="Vertex.hlsl">
+    <FxCompile Include="Fragment.hlsl">
       <Filter>Source Files</Filter>
     </FxCompile>
     <FxCompile Include="Geometry.hlsl">

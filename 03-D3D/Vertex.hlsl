@@ -2,6 +2,7 @@ struct VS_IN
 {
 	float3 Pos : POSITION;
 	float2 Tex : TEXCOORD;
+
 };
 
 struct VS_OUT

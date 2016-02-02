@@ -113,7 +113,7 @@ void CreateDepthBuffer()
 	desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 	desc.CPUAccessFlags = 0;
 	desc.MiscFlags = 0;
-
+	
 	gDevice->CreateTexture2D(&desc, 0, &gDepthStencilBuffer);
 
 	gDevice->CreateDepthStencilView(gDepthStencilBuffer, 0, &gDepthview);
@@ -217,15 +217,25 @@ void CreateShaders()
 	pGS->Release();
 }
 
+void createGrid()
+{
+
+	int gridWidth = 4;
+	int gridHeight = 2;
+
+	float xPos = -0.5, 0.5, 0.0;
+	fkyPos = 0.5, -0.5, 0.o;
+	zPos
+}
 void CreateTriangleData()
 {
-	struct TriangleVertex
+	/*struct TriangleVertex
 	{
 		float x, y, z;
 		float u, v;
-	};
+	};*/
 
-	TriangleVertex triangleVertices[6] =
+	/*TriangleVertex triangleVertices[6] =
 	{
 		-0.5f, 0.5f, 0.0f,	//v0 pos
 		0.0f, 0.0f,			//v0 uv
@@ -247,7 +257,7 @@ void CreateTriangleData()
 		0.5f, 0.5f, 0.0f,   //v2
 		1.0f, 0.0f			//v2 uv
 
-	};
+	};*/
 
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
@@ -259,7 +269,6 @@ void CreateTriangleData()
 	data.pSysMem = triangleVertices;
 	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);
 }
-
 
 void SetViewport()
 {
@@ -297,7 +306,9 @@ void Render()
 
 	UpdateConstantBuffer();
 
+	
 	gDeviceContext->Draw(6, 0);
+	
 }
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
