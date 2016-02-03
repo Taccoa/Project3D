@@ -6,9 +6,11 @@
 #include <DirectXMath.h>
 #include "SimpleMath.h"
 #include "bth_image.h"
+#include <vector>
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
+using namespace std;
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
@@ -217,43 +219,24 @@ void CreateShaders()
 	pGS->Release();
 }
 
-void createGrid()
+void createPoints()
 {
-
-	int gridWidth = 50;
-	int gridHeight = 50;
-
-	struct TriangleVertex
+	struct Vertexpoints
 	{
 		float x, y, z;
 		float u, v;
-	} pos; 
-
-	TriangleVertex triangleVertices[3] =
-	{
-		-0.5f, 0.5f, 0.0f,	//v0 pos
-		0.0f, 0.0f,			//v0 uv
-
-		0.5f, -0.5f, 0.0f,	//v1
-		1.0f, 1.0f,			//v1 uv
-
-		-0.5f, -0.5f, 0.0f, //v2
-		0.0f, 1.0f,			//v2 uv
 	};
 
-	pos.x = -0.5, 0.5, -0.5;
-	pos.y = 0.5, -0.5, -0.5;
-	pos.z = 0.0, 0.0, 0.0;
+	
+	std::vector<Vertexpoints>points;
 
-	for (int y = 0; y < gridHeight; y++)
+	points.reserve(3);
+
+	for ( i = 0; i < 3; i++)
 	{
-		int base = y * gridWidth;
-		for (int x = 0; x < gridWidth; x++)
-		{
-			int index = base + x;
-		}
-
+		points.push_back(Vertexpoints[i));
 	}
+
 
 }
 void CreateTriangleData()
@@ -264,7 +247,7 @@ void CreateTriangleData()
 		float u, v;
 	};*/
 
-	/*TriangleVertex triangleVertices[6] =
+	/*TriangleVertex triangleVertices[] =
 	{
 		-0.5f, 0.5f, 0.0f,	//v0 pos
 		0.0f, 0.0f,			//v0 uv
@@ -288,7 +271,7 @@ void CreateTriangleData()
 
 	};*/
 
-	D3D11_BUFFER_DESC bufferDesc;
+	/*D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -296,7 +279,7 @@ void CreateTriangleData()
 
 	D3D11_SUBRESOURCE_DATA data;
 	data.pSysMem = triangleVertices;
-	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);
+	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);*/
 }
 
 void SetViewport()
