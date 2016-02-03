@@ -7,6 +7,7 @@
 #include "SimpleMath.h"
 #include "bth_image.h"
 #include <vector>
+typedef std::vector<int>int_vec_t;
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -227,17 +228,16 @@ void createPoints()
 		float u, v;
 	};
 
-	
 	std::vector<Vertexpoints>points;
 
-	points.reserve(3);
+	Vertexpoints onePoint;
 
-	for ( i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++)
 	{
-		points.push_back(Vertexpoints[i));
+		
 	}
 
-
+	
 }
 void CreateTriangleData()
 {
