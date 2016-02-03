@@ -220,12 +220,41 @@ void CreateShaders()
 void createGrid()
 {
 
-	int gridWidth = 4;
-	int gridHeight = 2;
+	int gridWidth = 50;
+	int gridHeight = 50;
 
-	float xPos = -0.5, 0.5, 0.0;
-	fkyPos = 0.5, -0.5, 0.o;
-	zPos
+	struct TriangleVertex
+	{
+		float x, y, z;
+		float u, v;
+	} pos; 
+
+	TriangleVertex triangleVertices[3] =
+	{
+		-0.5f, 0.5f, 0.0f,	//v0 pos
+		0.0f, 0.0f,			//v0 uv
+
+		0.5f, -0.5f, 0.0f,	//v1
+		1.0f, 1.0f,			//v1 uv
+
+		-0.5f, -0.5f, 0.0f, //v2
+		0.0f, 1.0f,			//v2 uv
+	};
+
+	pos.x = -0.5, 0.5, -0.5;
+	pos.y = 0.5, -0.5, -0.5;
+	pos.z = 0.0, 0.0, 0.0;
+
+	for (int y = 0; y < gridHeight; y++)
+	{
+		int base = y * gridWidth;
+		for (int x = 0; x < gridWidth; x++)
+		{
+			int index = base + x;
+		}
+
+	}
+
 }
 void CreateTriangleData()
 {
