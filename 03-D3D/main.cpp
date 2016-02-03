@@ -247,8 +247,8 @@ struct MaterialBuffer
 	XMFLOAT3 specular;
 	float reflection;
 
-	XMFLOAT3 emissive;
-	float padding;
+	//XMFLOAT3 emissive;
+	//float padding;
 };
 
 void CreateMaterialBuffer()
@@ -296,7 +296,7 @@ FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
 
 	FbxMesh* myMesh = nullptr;
 
-	bool importStatus = myImporter->Initialize("D:/test.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
+	bool importStatus = myImporter->Initialize("D:/test6.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
 	
 	if (!importStatus) //If the importer can't be initialized.
 	{
@@ -527,7 +527,7 @@ void ImportMaterial(FbxMesh* pMesh)
 		FbxPropertyT<FbxDouble3> ambient; 
 		FbxPropertyT<FbxDouble3> diffuse;
 		FbxPropertyT<FbxDouble3> specular; 
-		FbxPropertyT<FbxDouble3> emissive;
+		/*FbxPropertyT<FbxDouble3> emissive;*/
 
 		FbxPropertyT<FbxDouble> transparency;
 		FbxPropertyT<FbxDouble> shininess;
@@ -545,7 +545,7 @@ void ImportMaterial(FbxMesh* pMesh)
 				ambient = ((FbxSurfacePhong*)material)->Ambient;
 				diffuse = ((FbxSurfacePhong*)material)->Diffuse;
 				specular = ((FbxSurfacePhong*)material)->Specular;
-				emissive = ((FbxSurfacePhong*)material)->Emissive;
+				//emissive = ((FbxSurfacePhong*)material)->Emissive;
 				
 				transparency = ((FbxSurfacePhong*)material)->TransparencyFactor;
 				shininess = ((FbxSurfacePhong*)material)->Shininess;
@@ -559,9 +559,13 @@ void ImportMaterial(FbxMesh* pMesh)
 				test->diffuse.y = diffuse.Get()[1];
 				test->diffuse.z = diffuse.Get()[2];
 
-				test->emissive.x = emissive.Get()[0];
-				test->emissive.y = emissive.Get()[1];
-				test->emissive.z = emissive.Get()[2];
+				test->specular.x = specular.Get()[0];
+				test->specular.y = specular.Get()[1];
+				test->specular.z = specular.Get()[2];
+
+				//test->emissive.x = emissive.Get()[0];
+				//test->emissive.y = emissive.Get()[1];
+				//test->emissive.z = emissive.Get()[2];
 
 				test->transparency = transparency.Get();
 				test->shininess = shininess.Get();
@@ -572,7 +576,7 @@ void ImportMaterial(FbxMesh* pMesh)
 			{
 				ambient = ((FbxSurfaceLambert*)material)->Ambient;
 				diffuse = ((FbxSurfaceLambert*)material)->Diffuse;
-				emissive = ((FbxSurfaceLambert*)material)->Emissive;
+				/*emissive = ((FbxSurfaceLambert*)material)->Emissive;*/
 				transparency = ((FbxSurfaceLambert*)material)->TransparencyFactor;
 
 				test->ambient.x = ambient.Get()[0];
@@ -583,9 +587,9 @@ void ImportMaterial(FbxMesh* pMesh)
 				test->diffuse.y = diffuse.Get()[1];
 				test->diffuse.z = diffuse.Get()[2];
 
-				test->emissive.x = emissive.Get()[0];
-				test->emissive.y = emissive.Get()[1];
-				test->emissive.z = emissive.Get()[2];
+				//test->emissive.x = emissive.Get()[0];
+				//test->emissive.y = emissive.Get()[1];
+				//test->emissive.z = emissive.Get()[2];
 
 				test->transparency = transparency.Get();
 			}
@@ -603,6 +607,8 @@ void ImportMaterial(FbxMesh* pMesh)
 
 }
 
+void ImportTexture()
+
 void CreateTriangleData()
 {
 	std::vector<FBXData> aVector;
@@ -616,6 +622,8 @@ void CreateTriangleData()
 	ImportNormals(aMesh, &aVector);		//Import normals from FBX. 
 
 	ImportUV(aMesh, &aVector);			//Import UV:s from FBX.
+
+	ImportMaterial(aMesh);
 
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
@@ -666,10 +674,6 @@ void Render()
 
 	UpdateConstantBuffer();
 
-	FbxMesh* aMesh = LoadScene(myManager, myScene);
-
-	ImportMaterial(aMesh);
-
 	gDeviceContext->PSSetConstantBuffers(0, 1, &gMaterialBuffer);
 
 	gDeviceContext->Draw(vertexVector, 0);
@@ -688,11 +692,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 		CreateShaders(); //4. Skapa vertex- och pixel-shaders
 
+		CreateMaterialBuffer();
+
 		CreateTriangleData(); //5. Definiera triangelvertiser, 6. Skapa vertex buffer, 7. Skapa input layout
 
 		CreateConstantBuffer(); //Calls the CreateConstantBuffer function
-
-		CreateMaterialBuffer();
 		
 		CreateTexture();
 
