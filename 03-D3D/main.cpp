@@ -7,6 +7,9 @@
 #include "SimpleMath.h"
 #include "bth_image.h"
 #include <vector>
+#include <iostream>
+#include <fstream>
+
 typedef std::vector<int>int_vec_t;
 
 using namespace DirectX::SimpleMath;
@@ -41,11 +44,34 @@ ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 ID3D11GeometryShader* gGeometryShader = nullptr;
 
+struct InitInfo
+{
+	//wstring supports unicode characters(8 bit char)
+	std::wstring heightmapImage; //filename of RAW heightmap data
+
+	//texture filenames used for texturing the terrain
+	std::wstring layerMapfName0;
+	std::wstring layerMapfName1;
+	std::wstring layerMapfName2;
+	std::wstring layerMapfName3;
+	std::wstring layerMapfName4;
+	std::wstring blendMapfName;
+	
+	//scale to apply to heights when loaded fom the HMap
+	float heightScale;
+
+	UINT heightmapWidth;
+	UINT heightmapHeight;
+
+	//cellspacing along x- and z-axes
+	float cellspacing;
+
+} fileData;
 struct Terrain
 {
 	XMFLOAT3 Pos;
-	XMFLOAT3 Tex;
-	XMFLOAT3 xBoundsY;
+	XMFLOAT2 Tex;
+	XMFLOAT2 BoundsY;
 };
 struct VS_CONSTANT_BUFFER
 {
@@ -245,12 +271,52 @@ void CreateShaders()
 
 	
 }*/
-/*void Terrain()
+void LoadHeigthmap()
 {
-	std::vector<XMFLOAT2>patchBoundsY;
+	//height for each vertex 
+	std::vector<unsigned char>in(fileData.heightmapWidth * fileData.heightmapHeight);
 
-	patchBoundsY.resize();
-}*/
+	std::vector<unsigned char> mHeightmap;
+	//open file
+	std::ifstream openFile;
+	//ios_base, a class that represents witch opening mode, binary rather than text
+	openFile.open(fileData.heightmapImage.c_str(), std::ios_base::binary); 
+
+	if (openFile)
+	{
+		//read the RAW bytes
+		//char* adress of the array of bytes where the read data are stored
+		//size, numder of characters to be read
+		//in, specifies the fileData 
+		openFile.read((char*)&in[0], (std::streamsize)in.size());
+
+		openFile.close();
+	}
+
+	//copy arraydata into a float array and scale it
+	mHeightmap.resize(fileData.heightmapHeight, fileData.heightmapWidth);
+	for (UINT i = 0; i < fileData.heightmapHeight * fileData.heightmapWidth; i++)
+	{
+		mHeightmap[i] = (in[i] / 255.0f) * fileData.heightScale;
+	}
+}
+void createHeightmapTexture()
+{
+	D3D11_TEXTURE2D_DESC texDesc;
+	texDesc.Width = fileData.heightmapWidth;
+	texDesc.Height = fileData.heightmapHeight;
+	texDesc.MipLevels = 1;
+	texDesc.ArraySize = 1;
+	texDesc.Format = DXGI_FORMAT_R16_FLOAT;
+	texDesc.SampleDesc.Quality = 0;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.Usage = D3D11_USAGE_DEFAULT;
+	texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	texDesc.CPUAccessFlags = 0;
+	texDesc.MiscFlags = 0;
+
+	
+}
 void CreateTriangleData()
 {
 	/*struct TriangleVertex
