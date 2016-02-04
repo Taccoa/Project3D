@@ -44,6 +44,9 @@ ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 ID3D11GeometryShader* gGeometryShader = nullptr;
 
+std::vector<unsigned char>in(fileData.heightmapWidth * fileData.heightmapHeight);
+std::vector<unsigned char> mHeightmap;
+
 struct InitInfo
 {
 	//wstring supports unicode characters(8 bit char)
@@ -156,6 +159,7 @@ void CreateDepthBuffer()
 
 void CreateTexture()
 {
+	
 	D3D11_TEXTURE2D_DESC bthTexDesc;
 	ZeroMemory(&bthTexDesc, sizeof(bthTexDesc));
 	bthTexDesc.Width = BTH_IMAGE_WIDTH;
@@ -274,9 +278,7 @@ void CreateShaders()
 void LoadHeigthmap()
 {
 	//height for each vertex 
-	std::vector<unsigned char>in(fileData.heightmapWidth * fileData.heightmapHeight);
-
-	std::vector<unsigned char> mHeightmap;
+	
 	//open file
 	std::ifstream openFile;
 	//ios_base, a class that represents witch opening mode, binary rather than text
@@ -302,7 +304,10 @@ void LoadHeigthmap()
 }
 void createHeightmapTexture()
 {
+	UINT HALF;
+
 	D3D11_TEXTURE2D_DESC texDesc;
+	ZeroMemory(&texDesc, sizeof(texDesc));
 	texDesc.Width = fileData.heightmapWidth;
 	texDesc.Height = fileData.heightmapHeight;
 	texDesc.MipLevels = 1;
@@ -315,7 +320,11 @@ void createHeightmapTexture()
 	texDesc.CPUAccessFlags = 0;
 	texDesc.MiscFlags = 0;
 
-	
+	std::vector<HALF> ;
+	D3D11_SUBRESOURCE_DATA hData;
+	hData.pSysMem = ;
+	hData.SysMemPitch = 
+
 }
 void CreateTriangleData()
 {
