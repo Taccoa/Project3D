@@ -33,7 +33,7 @@ ID3D11ShaderResourceView* gTextureView = nullptr;
 
 ID3D11Texture2D *gTexture = NULL;
 
-ID3D11Buffer* gVertexBuffer = nullptr;
+//ID3D11Buffer* gVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
 
 ID3D11InputLayout* gVertexLayout = nullptr;
@@ -41,6 +41,12 @@ ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 ID3D11GeometryShader* gGeometryShader = nullptr;
 
+struct Terrain
+{
+	XMFLOAT3 Pos;
+	XMFLOAT3 Tex;
+	XMFLOAT3 xBoundsY;
+};
 struct VS_CONSTANT_BUFFER
 {
 	Matrix worldViewProj;
@@ -220,7 +226,7 @@ void CreateShaders()
 	pGS->Release();
 }
 
-void createPoints()
+/*void createPoints()
 {
 	struct Vertexpoints
 	{
@@ -234,20 +240,26 @@ void createPoints()
 
 	for (int i = 0; i < 3; i++)
 	{
-		
+	
 	}
 
 	
-}
+}*/
+/*void Terrain()
+{
+	std::vector<XMFLOAT2>patchBoundsY;
+
+	patchBoundsY.resize();
+}*/
 void CreateTriangleData()
 {
 	/*struct TriangleVertex
 	{
 		float x, y, z;
 		float u, v;
-	};*/
+	};
 
-	/*TriangleVertex triangleVertices[] =
+	TriangleVertex triangleVertices[] =
 	{
 		-0.5f, 0.5f, 0.0f,	//v0 pos
 		0.0f, 0.0f,			//v0 uv
@@ -269,9 +281,9 @@ void CreateTriangleData()
 		0.5f, 0.5f, 0.0f,   //v2
 		1.0f, 0.0f			//v2 uv
 
-	};*/
+	};
 
-	/*D3D11_BUFFER_DESC bufferDesc;
+	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -311,7 +323,7 @@ void Render()
 
 	UINT32 vertexSize = sizeof(float) * 5;
 	UINT32 offset = 0;
-	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
+//	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
 	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	gDeviceContext->IASetInputLayout(gVertexLayout);
@@ -359,7 +371,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			}
 		}
 
-		gVertexBuffer->Release();
+		//gVertexBuffer->Release();
 		gConstantBuffer->Release(); //Prevents Memory Leaks
 		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
 
