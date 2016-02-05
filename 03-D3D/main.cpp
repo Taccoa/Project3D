@@ -9,6 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include "WICTextureLoader.h"
 
 typedef std::vector<int>int_vec_t;
 
@@ -33,8 +34,10 @@ ID3D11DepthStencilView* gDepthview = nullptr;
 ID3D11Texture2D* gDepthStencilBuffer = nullptr;
 
 ID3D11ShaderResourceView* gTextureView = nullptr;
-
 ID3D11Texture2D *gTexture = NULL;
+
+ID3D10ShaderResourceView* hTextureView;
+ID3D11Texture2D *hTexture = NULL;
 
 //ID3D11Buffer* gVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
@@ -44,8 +47,8 @@ ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 ID3D11GeometryShader* gGeometryShader = nullptr;
 
-std::vector<unsigned char>in(fileData.heightmapWidth * fileData.heightmapHeight);
-std::vector<unsigned char> mHeightmap;
+//std::vector<unsigned char>in(fileData.heightmapWidth * fileData.heightmapHeight);
+//std::vector<unsigned char> mHeightmap;
 
 struct InitInfo
 {
@@ -279,10 +282,12 @@ void LoadHeigthmap()
 {
 	//height for each vertex 
 	
+	
 	//open file
 	std::ifstream openFile;
 	//ios_base, a class that represents witch opening mode, binary rather than text
 	openFile.open(fileData.heightmapImage.c_str(), std::ios_base::binary); 
+	DirectX::CreateWICTextureFromFile(gDevice, gDeviceContext, fileData.heightmapImage, &hTexture, &hTextureView, 0);
 
 	if (openFile)
 	{
@@ -304,7 +309,7 @@ void LoadHeigthmap()
 }
 void createHeightmapTexture()
 {
-	UINT HALF;
+	/*UINT HALF;
 
 	D3D11_TEXTURE2D_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(texDesc));
@@ -320,10 +325,10 @@ void createHeightmapTexture()
 	texDesc.CPUAccessFlags = 0;
 	texDesc.MiscFlags = 0;
 
-	std::vector<HALF> ;
+	std::vector<>;
 	D3D11_SUBRESOURCE_DATA hData;
 	hData.pSysMem = ;
-	hData.SysMemPitch = 
+	hData.SysMemPitch = */
 
 }
 void CreateTriangleData()
@@ -414,7 +419,8 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 {
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance); //1. Skapa fönster
-	
+	CoInitialize(NULL);
+
 	if (wndHandle)
 	{
 		CreateDirect3DContext(wndHandle); //2. Skapa och koppla SwapChain, Device och Device Context
