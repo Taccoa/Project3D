@@ -9,13 +9,12 @@
 
 
 //http://www.braynzarsoft.net/viewtutorial/q16390-braynzar-soft-directx-11-tutorials
+//https://drive.google.com/drive/folders/0BypxoNw8MhW3QzU5ZnVwc2Q5Wms
 
 #include "WICTextureLoader.h"
 
 #include <fbxsdk.h>
-#include <vector>
 #include <assert.h>
-#include <dinput.h>
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -63,51 +62,6 @@ XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 
 XMVECTOR camPosition = XMVectorSet(0.0f, 0.0f, -10.f, 0.0f);
-XMVECTOR camTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-XMVECTOR camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-XMMATRIX camRotationMatrix;
-XMMATRIX camView;
-
-float moveLeftRight = 0.0f;
-float moveBackForward = 0.0f;
-
-float camYaw = 0.0f;
-float camPitch = 0.0f;
-
-void UpdateCamera();
-
-IDirectInputDevice8* DIKeyboard;
-IDirectInputDevice8* DIMouse;
-
-DIMOUSESTATE mouseLastState;
-LPDIRECTINPUT8 DirectInput;
-
-bool InitDirectInput(HINSTANCE hInstance);
-void DetectInput(double time);
-
-HRESULT hr;
-HWND hwnd = NULL;
-
-double countsPerSecond = 0.0;
-__int64 CounterStart = 0;
-
-int frameCount = 0;
-int fps = 0;
-
-__int64 frameTimeOld = 0;
-double frameTime;
-
-void StartTimer();
-double GetTime();
-double GetFrameTime();
-
-XMVECTOR DefaultForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-XMVECTOR DefaultRight = XMVectorSet(1.0f,0.0f,0.0f,0.0f);
-XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-
-XMVECTOR camPosition = XMVectorSet(0.0f, 0.0f, -0.5f, 0.0f);
 XMVECTOR camTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -197,13 +151,9 @@ void UpdateConstantBuffer()
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-<<<<<<< HEAD
 	//rotation += 0.1f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
-=======
-	//rotation += 0.03f;
->>>>>>> refs/remotes/origin/master
 
 	world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
 	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
@@ -410,7 +360,7 @@ FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
 
 	FbxMesh* myMesh = nullptr;
 
-	bool importStatus = myImporter->Initialize("D:/3D-programmering/3. Project/Leon/test.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
+	bool importStatus = myImporter->Initialize("//storage10.student.bth.se/students/20142/maml14/test.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
 
 	if (!importStatus) //If the importer can't be initialized.
 	{
@@ -897,11 +847,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 {
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance); //1. Skapa fönster
-<<<<<<< HEAD
-	
-=======
 
->>>>>>> refs/remotes/origin/master
 	if (!InitDirectInput(hInstance)) //We call our function and controlls that it does load
 	{
 		MessageBox(0, L"Direct Input Initialization - Failed", L"Error", MB_OK);
@@ -958,31 +904,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		}
 
 		gVertexBuffer->Release();
-<<<<<<< HEAD
 		gConstantBuffer->Release();		//Prevents Memory Leaks
+		gMaterialBuffer->Release();		//Prevents Memory Leaks
 		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
 
 		gDepthview->Release();			//Prevents Memory Leaks
-		gTextureView->Release();		//Prevents Memory Leaks
-		gTexture->Release();			//Prevents Memory Leaks
-=======
-		gConstantBuffer->Release(); //Prevents Memory Leaks
-		gMaterialBuffer->Release();
-		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
-
-		gDepthview->Release(); //Prevents Memory Leaks
-							   /*gTextureView->Release();*/ //Prevents Memory Leaks
-															/*gTexture->Release();*/ //Prevents Memory Leaks
->>>>>>> refs/remotes/origin/master
+		/*gTextureView->Release();*/	//Prevents Memory Leaks
+		/*gTexture->Release();*/		//Prevents Memory Leaks
 
 		gVertexLayout->Release();
 		gVertexShader->Release();
 		gPixelShader->Release();
-<<<<<<< HEAD
-		gGeometryShader->Release();		//Prevents Memory Leaks
-=======
 		//gGeometryShader->Release(); //Prevents Memory Leaks
->>>>>>> refs/remotes/origin/master
 
 		DIKeyboard->Unacquire();		//We release controll over the device
 		DIMouse->Unacquire();			//We release controll over the device
@@ -1108,15 +1041,9 @@ bool InitDirectInput(HINSTANCE hInstance)
 	hr = DIKeyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
 
 	hr = DIMouse->SetDataFormat(&c_dfDIMouse);			//Lets us tell the device what kind of input we are expecting
-<<<<<<< HEAD
 	//-------------------------------------------------
 	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_NONEXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
 	//-------------------------------------------------
-=======
-
-	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
-
->>>>>>> refs/remotes/origin/master
 
 	return true;
 }
@@ -1142,11 +1069,8 @@ void UpdateCamera()
 
 	camTarget = camPosition + camTarget;										//Adds the position with the target
 
-<<<<<<< HEAD
-=======
 	test.camPos = camPosition;
 
->>>>>>> refs/remotes/origin/master
 	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);					//Stores the NEW View Matrix
 }
 
@@ -1185,7 +1109,7 @@ void DetectInput(double time)
 	{
 		moveBackForward -= speed;			//Moves the camera back
 	}
-<<<<<<< HEAD
+
 	//----------------------------------------------------------------------------
 	if (mouseCurrState.rgbButtons[0])
 	{
@@ -1222,8 +1146,7 @@ void DetectInput(double time)
 		isShoot = false;
 	}
 	//----------------------------------------------------------------------------
-=======
->>>>>>> refs/remotes/origin/master
+
 	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY)) //We check where the mouse are now
 	{
 		camYaw += mouseLastState.lX * 0.001f;
@@ -1268,7 +1191,6 @@ double GetFrameTime()
 
 	return float(tickCount) / countsPerSecond;
 }
-<<<<<<< HEAD
 //----------------------------------------------------------------------
 void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos, XMVECTOR& pickRayInWorldSpaceDir)
 {
@@ -1385,12 +1307,3 @@ bool PointInTriangle(XMVECTOR& triV1, XMVECTOR& triV2, XMVECTOR& triV3, XMVECTOR
 		return false;
 }
 //----------------------------------------------------------------------
-=======
-
-
-
-
-
-
-
->>>>>>> refs/remotes/origin/master
