@@ -50,7 +50,7 @@ ID3D11GeometryShader* gGeometryShader = nullptr;
 //std::vector<unsigned char>in(fileData.heightmapWidth * fileData.heightmapHeight);
 //std::vector<unsigned char> mHeightmap;
 
-struct InitInfo
+/*struct InitInfo
 {
 	//wstring supports unicode characters(8 bit char)
 	std::wstring heightmapImage; //filename of RAW heightmap data
@@ -72,13 +72,111 @@ struct InitInfo
 	//cellspacing along x- and z-axes
 	float cellspacing;
 
-} fileData;
-struct Terrain
+} fileData;*/
+/*struct Terrain
 {
 	XMFLOAT3 Pos;
 	XMFLOAT2 Tex;
 	XMFLOAT2 BoundsY;
+};*/
+//-----------------------------------------------
+int numFaces = 0;
+int numVertices = 0;
+
+struct HeightMapInfo
+{
+	int terrainHeight;
+	int terrainWidth;
+	XMFLOAT3 *heightMap; //array to store terrain's vertex positions
 };
+
+bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo);
+bool InitScene();
+//function that loads a bmp image and stores hm info in the HeightMapInfo structure
+bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
+{	
+	FILE *filePointer;					//point to the current position in the file
+	BITMAPFILEHEADER bitmapFileHeader;	//structure that contains info about type, size, layout of the file
+	BITMAPINFOHEADER bitmapInfoHeader;	//contains info about the image inside the file
+	int imageSize, index;				//index = keeps track of current place in the grid 
+										//when filling the hmap structure with pos info
+	unsigned char height;				//load in the color value for current read texel
+										//we need just one value of the RBG because its a grayscale image 
+
+	filePointer = fopen(filename, "rb"); //r = read, b = binary file 
+	if (filePointer == NULL)
+		return 0;
+
+	//read bitmaps header
+	//pointer to a block of memory, size in bytes of each element, number of elements
+	//pointer to FILE objekt that specifies an input stream
+	fread(&bitmapFileHeader, sizeof(BITMAPFILEHEADER), 1, filePointer);
+
+	//read info header
+	fread(&bitmapInfoHeader, sizeof(BITMAPINFOHEADER), 1, filePointer);
+
+	//get width and height of the image
+	heightMInfo.terrainHeight = bitmapInfoHeader.biHeight;
+	heightMInfo.terrainWidth = bitmapInfoHeader.biWidth;
+
+	//size of the image in bytes. 3 = RGB (byte, byte, byte) for each pixel
+	imageSize = heightMInfo.terrainHeight * heightMInfo.terrainWidth * 3;
+
+	//array that stores the image data
+	unsigned char* bitmapImage = new unsigned char[imageSize];
+
+	//set the file pointer to the beginning of the image data
+	//filePointer = sets the position indicator associated with the stream to a new position
+	//bfoffBits = offset, SEEK_SET = beginning of file
+	fseek(filePointer, bitmapFileHeader.bfOffBits, SEEK_SET);
+
+	//store image data in bitmapImage
+	fread(bitmapImage, 1, imageSize, filePointer);
+	fclose(filePointer);
+
+	//initialize  the hmap array (stores the verices of the terrain)
+	heightMInfo.heightMap = new XMFLOAT3[heightMInfo.terrainHeight * heightMInfo.terrainWidth];
+
+	//we only need R for the height therefore we use k to read R and skip GB in RGB 
+	int k = 0;
+
+	//divide the height by 10 to water down the terrains height, to smooth the terrain 
+	float heightFactor = 10.0f;
+
+	//read the image data info into our heightMap array
+	for (int j = 0; j < heightMInfo.terrainHeight; j++)
+	{
+		for (int i = 0; i < heightMInfo.terrainWidth; i++)
+		{
+			height = bitmapImage[k];
+
+			index = (heightMInfo.terrainHeight * j) + i;
+
+			heightMInfo.heightMap[index].x = (float)i;
+			heightMInfo.heightMap[index].y = (float)height / heightFactor;
+			heightMInfo.heightMap[index].z = (float)j;
+
+			k += 3; // to skip GB and go to next R component
+		}
+	}
+	delete[] bitmapImage;
+	bitmapImage = 0;
+
+	return true;
+}
+bool InitScene()
+{
+	HeightMapInfo hmInfo;
+	HeightMapLoad("heightmapImage.bmp", hmInfo);
+
+	int cols = hmInfo.terrainWidth;
+	int rows = hmInfo.terrainHeight;
+
+	//Create the grid 
+	numVertices = rows * cols;
+	numFaces = (rows - 1) * (cols - 1) * 2;
+}
+//-----------------------------------------------
 struct VS_CONSTANT_BUFFER
 {
 	Matrix worldViewProj;
@@ -278,7 +376,7 @@ void CreateShaders()
 
 	
 }*/
-void LoadHeigthmap()
+/*void LoadHeigthmap()
 {
 	//height for each vertex 
 	
@@ -306,7 +404,7 @@ void LoadHeigthmap()
 	{
 		mHeightmap[i] = (in[i] / 255.0f) * fileData.heightScale;
 	}
-}
+}*/
 void createHeightmapTexture()
 {
 	/*UINT HALF;

@@ -34,11 +34,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="heightmapImage.raw">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="WICTextureLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
