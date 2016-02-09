@@ -6,15 +6,12 @@
 #include "bth_image.h"
 #include <dinput.h>
 #include <vector>
-
+#include "WICTextureLoader.h"
+#include <fbxsdk.h>
+#include <assert.h>
 
 //http://www.braynzarsoft.net/viewtutorial/q16390-braynzar-soft-directx-11-tutorials
 //https://drive.google.com/drive/folders/0BypxoNw8MhW3QzU5ZnVwc2Q5Wms
-
-#include "WICTextureLoader.h"
-
-#include <fbxsdk.h>
-#include <assert.h>
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -53,14 +50,12 @@ ID3D11PixelShader* gPixelShader = nullptr;
 FbxManager* myManager = nullptr;	//Initialize both the manager and scene as nullptrs.
 FbxScene* myScene = nullptr;
 
-
 int vertexVector = 0;
 
 XMVECTOR DefaultForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR DefaultRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-
 XMVECTOR camPosition = XMVectorSet(0.0f, 0.0f, -10.f, 0.0f);
 XMVECTOR camTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
@@ -70,11 +65,8 @@ XMMATRIX camView;
 
 float moveLeftRight = 0.0f;
 float moveBackForward = 0.0f;
-
 float camYaw = 0.0f;
 float camPitch = 0.0f;
-
-void UpdateCamera();
 
 IDirectInputDevice8* DIKeyboard;
 IDirectInputDevice8* DIMouse;
@@ -97,10 +89,10 @@ int fps = 0;
 __int64 frameTimeOld = 0;
 double frameTime;
 
+void UpdateCamera();
 void StartTimer();
 double GetTime();
 double GetFrameTime();
-
 //----------------------------------------------------------------
 bool isShoot = false;
 
@@ -114,17 +106,13 @@ void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos,
 float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std::vector<XMFLOAT3>& vertPosArray, std::vector<DWORD>& indexPosArray, XMMATRIX& worldSpace);
 bool PointInTriangle(XMVECTOR& triV1, XMVECTOR& triV2, XMVECTOR& triV3, XMVECTOR& point);
 //----------------------------------------------------------------
-
 struct VS_CONSTANT_BUFFER
 {
 	Matrix worldViewProj;
 	Matrix world;
 };
 
-struct cam
-{
-	Vector3 camPos;
-};
+struct cam{ Vector3 camPos;};
 
 void CreateConstantBuffer()
 {
@@ -230,7 +218,6 @@ void CreateShaders()
 		&pVS,			// double pointer to ID3DBlob		
 		nullptr			// pointer for Error Blob messages.
 						// how to use the Error blob, see here
-						// https://msdn.microsoft.com/en-us/library/windows/desktop/hh968107(v=vs.85).aspx
 		);
 
 	gDevice->CreateVertexShader(pVS->GetBufferPointer(), pVS->GetBufferSize(), nullptr, &gVertexShader);
@@ -456,9 +443,7 @@ void ImportNormals(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 				outVertexVector->at(vertexIndex).nor[1] = normals.mData[1];
 				outVertexVector->at(vertexIndex).nor[2] = normals.mData[2];
 			}
-
 		}
-
 		else if (normalElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex) //Get the normals by obtaining polygon-vertex.
 		{
 			int indexPolygonVertex = 0;
@@ -493,7 +478,6 @@ void ImportNormals(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 				}
 			}
 		}
-
 		//Implement a if else for the mappingmode ByVertices.
 	}
 }
@@ -562,9 +546,7 @@ void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 					polyIndexCount++;
 				}
-
 			}
-
 		}
 	}
 }
@@ -588,7 +570,6 @@ void ImportMaterial(FbxMesh* pMesh)
 		FbxPropertyT<FbxDouble> transparency;
 		FbxPropertyT<FbxDouble> shininess;
 		FbxPropertyT<FbxDouble> reflection;
-
 
 		for (int materialIndex = 0; materialIndex < materialCount; materialIndex++)
 		{
@@ -627,7 +608,6 @@ void ImportMaterial(FbxMesh* pMesh)
 				test.shininess = shininess.Get();
 				test.reflection = reflection.Get();
 			}
-
 			else if (material->GetClassId().Is(FbxSurfaceLambert::ClassId))
 			{
 				ambient = ((FbxSurfaceLambert*)material)->Ambient;
@@ -653,14 +633,12 @@ void ImportMaterial(FbxMesh* pMesh)
 
 				test.transparency = transparency.Get();
 			}
-
 			else
 			{
 				FBXSDK_printf("Error: Unknown material.\n");
 			}
 		}
 	}
-
 }
 
 void ImportTexture(FbxMesh* pMesh)
@@ -703,10 +681,8 @@ void ImportTexture(FbxMesh* pMesh)
 
 								layeredTexture->GetTextureBlendMode(k, blendMode);
 							}
-
 						}
 					}
-
 					FbxTexture* texture = prop.GetSrcObject<FbxTexture>(j);
 
 					FbxFileTexture *fileTexture = FbxCast<FbxFileTexture>(texture);
@@ -729,8 +705,6 @@ void ImportTexture(FbxMesh* pMesh)
 			}
 		}
 	}
-
-
 }
 
 void UpdateMaterialBuffer()
@@ -748,7 +722,6 @@ void UpdateMaterialBuffer()
 
 void CreateSampler()
 {
-
 	D3D11_SAMPLER_DESC samplerDesc;
 	ZeroMemory(&samplerDesc, sizeof(samplerDesc));
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
@@ -764,9 +737,6 @@ void CreateSampler()
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	gDevice->CreateSamplerState(&samplerDesc, &sampAni);
-
-
-
 }
 
 void CreateTriangleData()
@@ -902,7 +872,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 				gSwapChain->Present(0, 0); //9. Växla front- och back-buffer
 			}
 		}
-
 		gVertexBuffer->Release();
 		gConstantBuffer->Release();		//Prevents Memory Leaks
 		gMaterialBuffer->Release();		//Prevents Memory Leaks
@@ -1109,7 +1078,6 @@ void DetectInput(double time)
 	{
 		moveBackForward -= speed;			//Moves the camera back
 	}
-
 	//----------------------------------------------------------------------------
 	if (mouseCurrState.rgbButtons[0])
 	{
@@ -1141,12 +1109,8 @@ void DetectInput(double time)
 			isShoot = true;
 		}
 	}
-	if (!mouseCurrState.rgbButtons[0])
-	{
-		isShoot = false;
-	}
+	if (!mouseCurrState.rgbButtons[0]) { isShoot = false;}
 	//----------------------------------------------------------------------------
-
 	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY)) //We check where the mouse are now
 	{
 		camYaw += mouseLastState.lX * 0.001f;
