@@ -39,7 +39,7 @@ ID3D11Texture2D *gTexture = NULL;
 ID3D10ShaderResourceView* hTextureView;
 ID3D11Texture2D *hTexture = NULL;
 
-//ID3D11Buffer* gVertexBuffer = nullptr;
+ID3D11Buffer* gVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
 
 ID3D11InputLayout* gVertexLayout = nullptr;
@@ -82,6 +82,19 @@ ID3D11GeometryShader* gGeometryShader = nullptr;
 //-----------------------------------------------
 int numFaces = 0;
 int numVertices = 0;
+
+struct Vertex
+{
+	Vertex() {};
+	Vertex(float x, float y, float z,
+		float u, float v, float nx,
+		float ny, float nz)
+		:pos(x, y, z), texCoord(u, v), nor(nx, ny, nz){}
+
+	XMFLOAT3 pos;
+	XMFLOAT2 texCoord;
+	XMFLOAT3 nor;
+};
 
 struct HeightMapInfo
 {
@@ -166,15 +179,50 @@ bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
 }
 bool InitScene()
 {
+	//the bitmaps filename i being passed to the hmInfo object
+	//so it can loaded with the info of the heightmap
 	HeightMapInfo hmInfo;
 	HeightMapLoad("heightmapImage.bmp", hmInfo);
 
+	//width and length(cols, rows) of the grid(vertices)
 	int cols = hmInfo.terrainWidth;
 	int rows = hmInfo.terrainHeight;
 
 	//Create the grid 
-	numVertices = rows * cols;
-	numFaces = (rows - 1) * (cols - 1) * 2;
+	numVertices = rows * cols; //to get nr of quads
+	numFaces = (rows - 1) * (cols - 1) * 2; //mult with 2 to get the nr of triangles 
+											//since it's two triangles in each quad
+	//vector to hold all the vertices
+	std::vector<Vertex> v(numVertices);
+
+	//loop throgh each col and row of the grid
+	for (DWORD i = 0; i < rows; i++)
+	{
+		for (DWORD j = 0; j < cols; j++)
+		{
+			//define the position of each vertex by using hmInfos info
+			v[i*cols + j].pos = hmInfo.heightMap[i*cols + j];
+			//initializing the normal so it points directly up, faces of the terrain will be lit equally
+			//if you have a normal defined in the hmap file, set it here the same way as the position(saves runtime) 
+			v[i*cols + j].nor = XMFLOAT3(0.0f, 1.0f, 0.0f);
+			v[i*cols + j].texCoord = XMFLOAT2(float(i) / rows, float(j) / cols);
+			
+		}
+	}
+
+	D3D11_BUFFER_DESC VertexBufferDesc;
+	memset(&VertexBufferDesc, 0, sizeof(VertexBufferDesc));
+	VertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	VertexBufferDesc.ByteWidth = sizeof(Vertex) * numVertices;
+	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA VertexBufferData;
+	memset(&VertexBufferData, 0, sizeof(VertexBufferData));
+	VertexBufferData.pSysMem = &v[0];
+
+	gDevice->CreateBuffer(&VertexBufferDesc, &VertexBufferData, &gVertexBuffer);
+
+	return true;
 }
 //-----------------------------------------------
 struct VS_CONSTANT_BUFFER
@@ -314,6 +362,7 @@ void CreateShaders()
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0}
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
@@ -459,17 +508,24 @@ void CreateTriangleData()
 		0.5f, 0.5f, 0.0f,   //v2
 		1.0f, 0.0f			//v2 uv
 
+	};*/
+
+	Vertex v[] =
+	{
+
 	};
 
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(triangleVertices);
+	bufferDesc.ByteWidth = sizeof(Vertex) * 4;
 
-	D3D11_SUBRESOURCE_DATA data;
-	data.pSysMem = triangleVertices;
-	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);*/
+	D3D11_SUBRESOURCE_DATA VertexBufferdata;
+	memset(&VertexBufferdata, 0, sizeof(VertexBufferdata));
+	VertexBufferdata.pSysMem = v;
+	gDevice->CreateBuffer(&bufferDesc, &VertexBufferdata, &gVertexBuffer);
+
 }
 
 void SetViewport()
@@ -501,7 +557,7 @@ void Render()
 
 	UINT32 vertexSize = sizeof(float) * 5;
 	UINT32 offset = 0;
-//	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
+	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
 	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	gDeviceContext->IASetInputLayout(gVertexLayout);
@@ -550,7 +606,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			}
 		}
 
-		//gVertexBuffer->Release();
+		gVertexBuffer->Release();
 		gConstantBuffer->Release(); //Prevents Memory Leaks
 		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
 
