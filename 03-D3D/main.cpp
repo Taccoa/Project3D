@@ -56,12 +56,13 @@ XMVECTOR DefaultForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR DefaultRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-XMVECTOR camPosition = XMVectorSet(0.0f, 0.0f, -10.f, 0.0f);
+XMVECTOR camPosition = XMVectorSet(0.0f, 0.0f, -2.0f, 0.0f);
 XMVECTOR camTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 XMMATRIX camRotationMatrix;
 XMMATRIX camView;
+XMMATRIX camProjection;
 
 float moveLeftRight = 0.0f;
 float moveBackForward = 0.0f;
@@ -135,7 +136,6 @@ void UpdateConstantBuffer()
 	VS_CONSTANT_BUFFER* dataPtr;
 
 	Matrix world;
-	Matrix projection;
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
@@ -144,9 +144,9 @@ void UpdateConstantBuffer()
 	VS_CONSTANT_BUFFER vsCBuffer;
 
 	world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
-	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
+	camProjection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
 
-	worldViewProjection = world * camView * projection;
+	worldViewProjection = world * camView * camProjection;
 	worldViewProjection = worldViewProjection.Transpose();
 
 	world = world.Transpose();
@@ -1096,9 +1096,14 @@ void DetectInput(double time)
 			int hitIndex;
 
 			XMVECTOR prwsPos, prwsDir;
-			/*pickRayVector(mousex, mousey, prwsPos, prwsDir);*/
+			pickRayVector(mousex, mousey, prwsPos, prwsDir);
 
-
+			/*tempDist = pick(prwsPos, prwsDir, );*/
+			//if (tempDist < closestDist)
+			//{
+			//	closestDist = tempDist;
+			//	/*hitIndex = ;*/
+			//}
 
 			if (closestDist < FLT_MAX)
 			{
@@ -1163,12 +1168,15 @@ void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos,
 
 	float PRVecX, PRVecY, PRVecZ;
 
+	XMFLOAT4X4 proj;
+	XMStoreFloat4x4(&proj, camProjection);
+
 	//Transform 2D pick position on screen space to 3D ray in View space
-	/*PRVecX = ((( 2.0f * mouseX) / ClientWidth) - 1) / camProjection(0, 0);*/
-	/*PRVecY = (((2.0f * mouseY) / ClientHeight) - 1) / camProjection(1, 1);*/
+	PRVecX = ((( 2.0f * mouseX) / ClientWidth) - 1) / proj._11;
+	PRVecY = -(((2.0f * mouseY) / ClientHeight) - 1) / proj._22;
 	PRVecZ = 1.0f;
 
-	/*pickRayInViewSpaceDir = XMVectorSet(PRVecX, PRVecY, PRVecZ, 0.0f);*/
+	pickRayInViewSpaceDir = XMVectorSet(PRVecX, PRVecY, PRVecZ, 0.0f);
 
 	XMMATRIX pickRayToWorldSpaceMatrix;
 	XMVECTOR matInvDeter;
