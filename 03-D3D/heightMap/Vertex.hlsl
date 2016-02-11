@@ -3,11 +3,6 @@ struct VS_IN
 	float3 Pos : POSITION;
 	float3 Nor : NORMAL;
 	float2 Tex : TEXCOORD;
-<<<<<<< HEAD
-
-=======
-	/*float3 Col : COLOR;*/
->>>>>>> refs/remotes/origin/FPS
 };
 
 struct VS_OUT

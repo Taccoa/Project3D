@@ -85,10 +85,5 @@ float4 PS_main(GS_OUT input) : SV_Target
 
 	}
 
-<<<<<<< HEAD
-	return float4(rt);
-=======
 	return rt;
-
->>>>>>> refs/remotes/origin/FPS
 };

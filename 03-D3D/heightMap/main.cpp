@@ -4,23 +4,18 @@
 #include <DirectXMath.h>
 #include "SimpleMath.h"
 #include "bth_image.h"
-<<<<<<< HEAD
+
 #include <vector>
 #include <iostream>
 #include <fstream>
-//#include "WICTextureLoader.h"
 
-typedef std::vector<int>int_vec_t;
-=======
 #include <dinput.h>
-#include <vector>
-#include "WICTextureLoader.h"
 #include <fbxsdk.h>
 #include <assert.h>
+#include "WICTextureLoader.h"
 
 //http://www.braynzarsoft.net/viewtutorial/q16390-braynzar-soft-directx-11-tutorials
 //https://drive.google.com/drive/folders/0BypxoNw8MhW3QzU5ZnVwc2Q5Wms
->>>>>>> refs/remotes/origin/FPS
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -53,16 +48,13 @@ ID3D11Texture2D *hTexture = NULL;
 
 ID3D11Buffer* gVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
-<<<<<<< HEAD
 ID3D11Buffer* gIndexBuffer = nullptr;
-=======
 ID3D11Buffer* gMaterialBuffer = nullptr;
->>>>>>> refs/remotes/origin/FPS
 
 ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
-//ID3D11GeometryShader* gGeometryShader = nullptr;
+ID3D11GeometryShader* gGeometryShader = nullptr;
 
 FbxManager* myManager = nullptr;	//Initialize both the manager and scene as nullptrs.
 FbxScene* myScene = nullptr;
@@ -90,8 +82,6 @@ IDirectInputDevice8* DIMouse;
 
 DIMOUSESTATE mouseLastState;
 LPDIRECTINPUT8 DirectInput;
-
-<<<<<<< HEAD
 //----------------------------------------------
 
 int numFaces = 0;
@@ -194,7 +184,7 @@ bool InitScene()
 	//the bitmaps filename i being passed to the hmInfo object
 	//so it can loaded with the info of the heightmap
 	HeightMapInfo hmInfo;
-	HeightMapLoad("heightmapImage.bmp", hmInfo);
+	HeightMapLoad("J:\GitHub\Project3D\03-D3D\heightMap", hmInfo);
 
 	//width and length(cols, rows) of the grid(vertices)
 	int cols = hmInfo.terrainWidth;
@@ -268,7 +258,6 @@ bool InitScene()
 }
 
 //-----------------------------------------------
-=======
 bool InitDirectInput(HINSTANCE hInstance);
 void DetectInput(double time);
 
@@ -288,20 +277,7 @@ void UpdateCamera();
 void StartTimer();
 double GetTime();
 double GetFrameTime();
-//----------------------------------------------------------------
-bool isShoot = false;
 
-int ClientWidth = 0;
-int ClientHeight = 0;
-
-int score = 0;
-float pickedDist = 0.0f;
-
-void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos, XMVECTOR& pickRayInWorldSpaceDir);
-float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std::vector<XMFLOAT3>& vertPosArray, std::vector<DWORD>& indexPosArray, XMMATRIX& worldSpace);
-bool PointInTriangle(XMVECTOR& triV1, XMVECTOR& triV2, XMVECTOR& triV3, XMVECTOR& point);
-//----------------------------------------------------------------
->>>>>>> refs/remotes/origin/FPS
 struct VS_CONSTANT_BUFFER
 {
 	Matrix worldViewProj;
@@ -335,24 +311,13 @@ void UpdateConstantBuffer()
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-<<<<<<< HEAD
 	rotation += 0.01f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
 
 	//world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
 	world = XMMatrixScaling(0.018, 0.018, 0.018) * XMMatrixTranslation(-2.3, -0.6, -2.0);
-
-	view = XMMatrixLookAtLH(Vector3(0, 1, -3), Vector3(0, 0, 0), Vector3(0, 1, 0));
-	projection = XMMatrixPerspectiveFovLH(float(3.1415 * 0.45), float(640.0 / 480.0), float(0.5), float(20));
-=======
-	//rotation += 0.1f;
-
-	VS_CONSTANT_BUFFER vsCBuffer;
-
-	world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
 	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
->>>>>>> refs/remotes/origin/FPS
 
 	worldViewProjection = world * camView * projection;
 	worldViewProjection = worldViewProjection.Transpose();
@@ -434,14 +399,8 @@ void CreateShaders()
 
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-<<<<<<< HEAD
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0}
-=======
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		/*{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
->>>>>>> refs/remotes/origin/FPS
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
@@ -531,13 +490,9 @@ void CreateMaterialBuffer()
 
 void InitiSdkObjects(FbxManager*& pManager, FbxScene*& pScene)
 {
-<<<<<<< HEAD
-	/*struct TriangleVertex
-=======
 	pManager = FbxManager::Create(); //Creates the Manager for FBX and is object allocator for almost all classes.
 
 	if (!pManager) //If the manager isn't initialized.
->>>>>>> refs/remotes/origin/FPS
 	{
 		FBXSDK_printf("Error: Can't create FBX Manager!\n");
 		exit(1); //Exit the application.
@@ -572,13 +527,9 @@ FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
 		exit(1);
 	}
 
-<<<<<<< HEAD
-	TriangleVertex triangleVertices[] =
-=======
 	importStatus = myImporter->Import(pScene); //Import the created scene.
 
 	if (!importStatus) //If the scene can't be opened.
->>>>>>> refs/remotes/origin/FPS
 	{
 		FBXSDK_printf("Error: Cant import the created scene.");
 		exit(1);
@@ -602,10 +553,6 @@ FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
 			if (AttributeType != FbxNodeAttribute::eMesh) //Make sure that only meshes are processed.
 				continue;
 
-<<<<<<< HEAD
-	};*/
-
-=======
 			myMesh = (FbxMesh*)ChildNode->GetNodeAttribute();
 		}
 	}
@@ -983,21 +930,12 @@ void CreateTriangleData()
 	ImportTexture(aMesh);
 
 	UpdateMaterialBuffer();
->>>>>>> refs/remotes/origin/FPS
 
-	/*D3D11_BUFFER_DESC bufferDesc;
+	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-<<<<<<< HEAD
-	bufferDesc.ByteWidth = sizeof(Vertex);
 
-	D3D11_SUBRESOURCE_DATA VertexBufferdata;
-	memset(&VertexBufferdata, 0, sizeof(VertexBufferdata));
-	VertexBufferdata.pSysMem = v;
-	gDevice->CreateBuffer(&bufferDesc, &VertexBufferdata, &gVertexBuffer);*/
-
-=======
 	bufferDesc.ByteWidth = aVector.size() * sizeof(FBXData);
 
 	vertexVector = aVector.size();
@@ -1005,7 +943,6 @@ void CreateTriangleData()
 	D3D11_SUBRESOURCE_DATA data;
 	data.pSysMem = aVector.data();
 	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);
->>>>>>> refs/remotes/origin/FPS
 }
 
 void SetViewport()
@@ -1035,11 +972,7 @@ void Render()
 	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
 	gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
 
-<<<<<<< HEAD
-	UINT32 vertexSize = sizeof(Vertex);
-=======
 	UINT32 vertexSize = sizeof(FBXData);
->>>>>>> refs/remotes/origin/FPS
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 	gDeviceContext->IASetIndexBuffer(gIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
@@ -1049,30 +982,23 @@ void Render()
 
 	UpdateConstantBuffer();
 
-<<<<<<< HEAD
 	gDeviceContext->DrawIndexed(numFaces* 3, 0, 0);
 	
-=======
 	gDeviceContext->PSSetConstantBuffers(0, 1, &gMaterialBuffer);
 
 	gDeviceContext->Draw(vertexVector, 0);
->>>>>>> refs/remotes/origin/FPS
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance); //1. Skapa fönster
-<<<<<<< HEAD
-	CoInitialize(NULL);
-=======
 
 	if (!InitDirectInput(hInstance)) //We call our function and controlls that it does load
 	{
 		MessageBox(0, L"Direct Input Initialization - Failed", L"Error", MB_OK);
 		return 0;
 	}
->>>>>>> refs/remotes/origin/FPS
 
 	if (wndHandle)
 	{
@@ -1263,9 +1189,7 @@ bool InitDirectInput(HINSTANCE hInstance)
 	hr = DIKeyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
 
 	hr = DIMouse->SetDataFormat(&c_dfDIMouse);			//Lets us tell the device what kind of input we are expecting
-	//-------------------------------------------------
-	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_NONEXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
-	//-------------------------------------------------
+	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
 
 	return true;
 }
@@ -1331,39 +1255,6 @@ void DetectInput(double time)
 	{
 		moveBackForward -= speed;			//Moves the camera back
 	}
-	//----------------------------------------------------------------------------
-	if (mouseCurrState.rgbButtons[0])
-	{
-		if (isShoot == false)
-		{
-			POINT mousePos;
-
-			GetCursorPos(&mousePos);
-			ScreenToClient(hwnd, &mousePos);
-
-			int mousex = mousePos.x;
-			int mousey = mousePos.y;
-
-			float tempDist;
-			float closestDist = FLT_MAX;
-			int hitIndex;
-
-			XMVECTOR prwsPos, prwsDir;
-			/*pickRayVector(mousex, mousey, prwsPos, prwsDir);*/
-
-
-
-			if (closestDist < FLT_MAX)
-			{
-				pickedDist = closestDist;
-				score++;
-			}
-			
-			isShoot = true;
-		}
-	}
-	if (!mouseCurrState.rgbButtons[0]) { isShoot = false;}
-	//----------------------------------------------------------------------------
 	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY)) //We check where the mouse are now
 	{
 		camYaw += mouseLastState.lX * 0.001f;
@@ -1408,119 +1299,3 @@ double GetFrameTime()
 
 	return float(tickCount) / countsPerSecond;
 }
-//----------------------------------------------------------------------
-void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos, XMVECTOR& pickRayInWorldSpaceDir)
-{
-	XMVECTOR pickRayInViewSpaceDir = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-	XMVECTOR pickRayInViewSpacePos = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-
-	float PRVecX, PRVecY, PRVecZ;
-
-	//Transform 2D pick position on screen space to 3D ray in View space
-	/*PRVecX = ((( 2.0f * mouseX) / ClientWidth) - 1) / camProjection(0, 0);*/
-	/*PRVecY = (((2.0f * mouseY) / ClientHeight) - 1) / camProjection(1, 1);*/
-	PRVecZ = 1.0f;
-
-	/*pickRayInViewSpaceDir = XMVectorSet(PRVecX, PRVecY, PRVecZ, 0.0f);*/
-
-	XMMATRIX pickRayToWorldSpaceMatrix;
-	XMVECTOR matInvDeter;
-
-	pickRayToWorldSpaceMatrix = XMMatrixInverse(&matInvDeter, camView);
-
-	pickRayInWorldSpacePos = XMVector3TransformCoord(pickRayInViewSpacePos, pickRayToWorldSpaceMatrix);
-	pickRayInWorldSpaceDir = XMVector3TransformNormal(pickRayInViewSpaceDir, pickRayToWorldSpaceMatrix);
-}
-
-float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std::vector<XMFLOAT3>& vertPosArray, std::vector<DWORD>& indexPosArray, XMMATRIX& worldSpace)
-{
-	for (int i = 0; i < indexPosArray.size() / 3; i++)
-	{
-		XMVECTOR tri1V1 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-		XMVECTOR tri1V2 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-		XMVECTOR tri1V3 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-
-		XMFLOAT3 tV1, tV2, tV3;
-
-		tV1 = vertPosArray[indexPosArray[(i * 3) + 0]];
-		tV2 = vertPosArray[indexPosArray[(i * 3) + 1]];
-		tV3 = vertPosArray[indexPosArray[(i * 3) + 2]];
-
-		tri1V1 = XMVectorSet(tV1.x, tV1.y, tV1.z, 0.0f);
-		tri1V2 = XMVectorSet(tV2.x, tV2.y, tV2.z, 0.0f);
-		tri1V3 = XMVectorSet(tV3.x, tV3.y, tV3.z, 0.0f);
-
-		tri1V1 = XMVector3TransformCoord(tri1V1, worldSpace);
-		tri1V2 = XMVector3TransformCoord(tri1V2, worldSpace);
-		tri1V3 = XMVector3TransformCoord(tri1V3, worldSpace);
-
-		XMVECTOR U = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-		XMVECTOR V = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-		XMVECTOR faceNormal = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-
-		U = tri1V2 - tri1V1;
-		V = tri1V3 - tri1V1;
-
-		faceNormal = XMVector3Cross(U, V);
-		faceNormal = XMVector3Normalize(faceNormal);
-
-		XMVECTOR triPoint = tri1V1;
-
-		float tri1A = XMVectorGetX(faceNormal);
-		float tri1B = XMVectorGetY(faceNormal);
-		float tri1C = XMVectorGetZ(faceNormal);
-		float tri1D = (-tri1A*XMVectorGetX(triPoint) - tri1B*XMVectorGetY(triPoint) - tri1C* XMVectorGetZ(triPoint));
-
-		float ep1, ep2, t = 0.0f;
-		float planeIntersectX, planeIntersectY, planeIntersectZ = 0.0f;
-		XMVECTOR pointInPlane = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-
-		ep1 = (XMVectorGetX(pickRayInWorldSpacePos) * tri1A) + (XMVectorGetY(pickRayInWorldSpacePos) * tri1B) + (XMVectorGetZ(pickRayInWorldSpacePos) * tri1C);
-		ep2 = (XMVectorGetX(pickRayInWorldSpaceDir) * tri1A) + (XMVectorGetY(pickRayInWorldSpaceDir) * tri1B) + (XMVectorGetZ(pickRayInWorldSpaceDir) * tri1C);
-
-		if (ep2 != 0.0f)
-			t = -(ep1 + tri1D) / (ep2);
-
-		if (t > 0.0f)
-		{
-			planeIntersectX = XMVectorGetX(pickRayInWorldSpacePos) + XMVectorGetX(pickRayInWorldSpaceDir) * t;
-			planeIntersectY = XMVectorGetY(pickRayInWorldSpacePos) + XMVectorGetY(pickRayInWorldSpaceDir) * t;
-			planeIntersectZ = XMVectorGetZ(pickRayInWorldSpacePos) + XMVectorGetZ(pickRayInWorldSpaceDir) * t;
-
-			pointInPlane = XMVectorSet(planeIntersectX, planeIntersectY, planeIntersectZ, 0.0f);
-
-			if (PointInTriangle(tri1V1, tri1V2, tri1V3, pointInPlane))
-			{
-				return t / 2.0f;
-			}
-		}
-	}
-	return FLT_MAX;
-}
-
-bool PointInTriangle(XMVECTOR& triV1, XMVECTOR& triV2, XMVECTOR& triV3, XMVECTOR& point)
-{
-	XMVECTOR cp1 = XMVector3Cross((triV3 - triV2), (point - triV2));
-	XMVECTOR cp2 = XMVector3Cross((triV3 - triV2), (triV1 - triV2));
-	if (XMVectorGetX(XMVector3Dot(cp1, cp2)) >= 0)
-	{
-		cp1 = XMVector3Cross((triV3 - triV1), (point - triV1));
-		cp2 = XMVector3Cross((triV3 - triV1), (triV2 - triV1));
-		if (XMVectorGetX(XMVector3Dot(cp1, cp2)) >= 0)
-		{
-			cp1 = XMVector3Cross((triV2 - triV1), (point - triV1));
-			cp2 = XMVector3Cross((triV2 - triV1), (triV3 - triV1));
-			if (XMVectorGetX(XMVector3Dot(cp1, cp2)) >= 0)
-			{
-				return true;
-			}
-			else
-				return false;
-		}
-		else
-			return false;
-	}
-	else
-		return false;
-}
-//----------------------------------------------------------------------
