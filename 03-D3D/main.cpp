@@ -103,11 +103,13 @@ bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
 	heightMInfo.terrainHeight = bitmapInfoHeader.biHeight;
 	heightMInfo.terrainWidth = bitmapInfoHeader.biWidth;
 
+	int rowBytes = bitmapInfoHeader.biWidth * bitmapInfoHeader.biPlanes;
+	rowBytes += 3 - (rowBytes - 1) % 4; // Round up to nearest multiple of 4
 	//size of the image in bytes. 3 = RGB (byte, byte, byte) for each pixel
-	imageSize = heightMInfo.terrainHeight * heightMInfo.terrainWidth * 3;
+	//imageSize = heightMInfo.terrainHeight * rowBytes;
 
 	//array that stores the image data
-	unsigned char* bitmapImage = new unsigned char[imageSize];
+	unsigned char* bitmapImage = new unsigned char[bitmapInfoHeader.biSizeImage];
 
 	//set the file pointer to the beginning of the image data
 	//filePointer = sets the position indicator associated with the stream to a new position
@@ -115,14 +117,11 @@ bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
 	fseek(filePointer, bitmapFileHeader.bfOffBits, SEEK_SET);
 
 	//store image data in bitmapImage
-	fread(bitmapImage, 1, imageSize, filePointer);
+	fread(bitmapImage, 1, bitmapInfoHeader.biSizeImage, filePointer);
 	fclose(filePointer);
 
 	//initialize  the hmap array (stores the verices of the terrain)
 	heightMInfo.heightMap = new XMFLOAT3[heightMInfo.terrainHeight * heightMInfo.terrainWidth];
-
-	//we only need R for the height therefore we use k to read R and skip GB in RGB 
-	int k = 0;
 
 	//divide the height by 10 to water down the terrains height, to smooth the terrain 
 	float heightFactor = 10.0f;
@@ -132,15 +131,13 @@ bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
 	{
 		for (int i = 0; i < heightMInfo.terrainWidth; i++)
 		{
-			height = bitmapImage[k];
+			height = bitmapImage[j * rowBytes + i * bitmapInfoHeader.biPlanes];
 
-			index = (heightMInfo.terrainHeight * j) + i;
+			index = (heightMInfo.terrainWidth * j) + i;
 
 			heightMInfo.heightMap[index].x = (float)i;
 			heightMInfo.heightMap[index].y = (float)height / heightFactor;
 			heightMInfo.heightMap[index].z = (float)j;
-
-			k += 3; // to skip GB and go to next R component
 		}
 	}
 	delete[] bitmapImage;
@@ -189,11 +186,11 @@ bool InitScene()
 		for (DWORD j = 0; j < cols - 1; j++)
 		{
 			indices[k] = i * cols + j;
-			indices[k + 1] = i * cols + j + 1;
-			indices[k + 2] = (i + 1) * cols + j;
+			indices[k + 2] = i * cols + j + 1;
+			indices[k + 1] = (i + 1) * cols + j;
 			indices[k + 3] = (i + 1) * cols + j;
+			indices[k + 5] = i * cols + j + 1;
 			indices[k + 4] = (i + 1) * cols + j + 1;
-			indices[k + 5] = (i + 1) * cols + j;
 
 			k += 6;
 		}
@@ -265,7 +262,7 @@ void UpdateConstantBuffer()
 	VS_CONSTANT_BUFFER vsCBuffer;
 
 	//world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
-	world = XMMatrixScaling(0.018, 0.018, 0.018) * XMMatrixTranslation(-2.3, -0.6, 0.0);
+	world = XMMatrixScaling(0.018, 0.018, 0.018) * XMMatrixTranslation(-2.3, -0.6, -2.0);
 
 	view = XMMatrixLookAtLH(Vector3(0, 1, -3), Vector3(0, 0, 0), Vector3(0, 1, 0));
 	projection = XMMatrixPerspectiveFovLH(float(3.1415 * 0.45), float(640.0 / 480.0), float(0.5), float(20));
@@ -492,7 +489,6 @@ void Render()
 
 	UpdateConstantBuffer();
 
-	gDeviceContext->Draw(numVertices, 0);
 	gDeviceContext->DrawIndexed(numFaces* 3, 0, 0);
 	
 }
