@@ -263,6 +263,8 @@ void UpdateConstantBuffer()
 	VS_CONSTANT_BUFFER vsCBuffer;
 
 	//world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
+	world = XMMatrixScaling(0.018, 0.018, 0.018) * XMMatrixTranslation(-2.3, -0.6, 0.0);
+
 	view = XMMatrixLookAtLH(Vector3(0, 0, -2), Vector3(0, 0, 0), Vector3(0, 1, 0));
 	projection = XMMatrixPerspectiveFovLH(float(3.1415 * 0.45), float(640.0 / 480.0), float(0.5), float(20));
 
@@ -510,21 +512,17 @@ void CreateTriangleData()
 
 	};*/
 
-	Vertex v[] =
-	{
 
-	};
-
-	D3D11_BUFFER_DESC bufferDesc;
+	/*D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(Vertex) * 4;
+	bufferDesc.ByteWidth = sizeof(Vertex);
 
 	D3D11_SUBRESOURCE_DATA VertexBufferdata;
 	memset(&VertexBufferdata, 0, sizeof(VertexBufferdata));
 	VertexBufferdata.pSysMem = v;
-	gDevice->CreateBuffer(&bufferDesc, &VertexBufferdata, &gVertexBuffer);
+	gDevice->CreateBuffer(&bufferDesc, &VertexBufferdata, &gVertexBuffer);*/
 
 }
 
@@ -555,7 +553,7 @@ void Render()
 	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
 	gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
 
-	UINT32 vertexSize = sizeof(float) * 5;
+	UINT32 vertexSize = sizeof(Vertex);
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
@@ -564,8 +562,7 @@ void Render()
 
 	UpdateConstantBuffer();
 
-	
-	gDeviceContext->Draw(6, 0);
+	gDeviceContext->Draw(numVertices, 0);
 	
 }
 
@@ -588,6 +585,8 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		CreateConstantBuffer(); //Calls the CreateConstantBuffer function
 
 		CreateTexture();
+
+		InitScene();
 
 		ShowWindow(wndHandle, nCmdShow);
 

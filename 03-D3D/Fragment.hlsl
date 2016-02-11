@@ -10,7 +10,7 @@ struct GS_OUT
 
 float4 PS_main(GS_OUT input) : SV_Target
 {
-	/*float4 lightPosition = float4(0.0, 0.0, -10.0, 0.0);
+/*	float4 lightPosition = float4(0.0, 0.0, -10.0, 0.0);
 	float3 lightIntensity = float3(1.0, 1.0, 1.0);
 
 	float4 s = normalize(lightPosition - input.PosWorld); //Distance between the Object and the Light
