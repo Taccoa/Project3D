@@ -9,7 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include "WICTextureLoader.h"
+//#include "WICTextureLoader.h"
 
 typedef std::vector<int>int_vec_t;
 
@@ -41,45 +41,15 @@ ID3D11Texture2D *hTexture = NULL;
 
 ID3D11Buffer* gVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
+ID3D11Buffer* gIndexBuffer = nullptr;
 
 ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 ID3D11GeometryShader* gGeometryShader = nullptr;
 
-//std::vector<unsigned char>in(fileData.heightmapWidth * fileData.heightmapHeight);
-//std::vector<unsigned char> mHeightmap;
+//----------------------------------------------
 
-/*struct InitInfo
-{
-	//wstring supports unicode characters(8 bit char)
-	std::wstring heightmapImage; //filename of RAW heightmap data
-
-	//texture filenames used for texturing the terrain
-	std::wstring layerMapfName0;
-	std::wstring layerMapfName1;
-	std::wstring layerMapfName2;
-	std::wstring layerMapfName3;
-	std::wstring layerMapfName4;
-	std::wstring blendMapfName;
-	
-	//scale to apply to heights when loaded fom the HMap
-	float heightScale;
-
-	UINT heightmapWidth;
-	UINT heightmapHeight;
-
-	//cellspacing along x- and z-axes
-	float cellspacing;
-
-} fileData;*/
-/*struct Terrain
-{
-	XMFLOAT3 Pos;
-	XMFLOAT2 Tex;
-	XMFLOAT2 BoundsY;
-};*/
-//-----------------------------------------------
 int numFaces = 0;
 int numVertices = 0;
 
@@ -105,6 +75,7 @@ struct HeightMapInfo
 
 bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo);
 bool InitScene();
+
 //function that loads a bmp image and stores hm info in the HeightMapInfo structure
 bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
 {	
@@ -206,7 +177,25 @@ bool InitScene()
 			//if you have a normal defined in the hmap file, set it here the same way as the position(saves runtime) 
 			v[i*cols + j].nor = XMFLOAT3(0.0f, 1.0f, 0.0f);
 			v[i*cols + j].texCoord = XMFLOAT2(float(i) / rows, float(j) / cols);
-			
+
+		}
+	}
+
+	std::vector<DWORD> indices(numFaces * 3);
+
+	int k = 0;
+	for (DWORD i = 0; i < rows - 1; i++)
+	{
+		for (DWORD j = 0; j < cols - 1; j++)
+		{
+			indices[k] = i * cols + j;
+			indices[k + 1] = i * cols + j + 1;
+			indices[k + 2] = (i + 1) * cols + j;
+			indices[k + 3] = (i + 1) * cols + j;
+			indices[k + 4] = (i + 1) * cols + j + 1;
+			indices[k + 5] = (i + 1) * cols + j;
+
+			k += 6;
 		}
 	}
 
@@ -222,8 +211,21 @@ bool InitScene()
 
 	gDevice->CreateBuffer(&VertexBufferDesc, &VertexBufferData, &gVertexBuffer);
 
+	D3D11_BUFFER_DESC IndexBufferDesc;
+	memset(&IndexBufferDesc, 0, sizeof(IndexBufferDesc));
+	IndexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	IndexBufferDesc.ByteWidth = sizeof(DWORD) * numFaces * 3;
+	IndexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA IndexBufferData;
+	memset(&IndexBufferData, 0, sizeof(IndexBufferData));
+	IndexBufferData.pSysMem = &indices[0];
+
+	gDevice->CreateBuffer(&IndexBufferDesc, &IndexBufferData, &gIndexBuffer);
+
 	return true;
 }
+
 //-----------------------------------------------
 struct VS_CONSTANT_BUFFER
 {
@@ -265,7 +267,7 @@ void UpdateConstantBuffer()
 	//world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
 	world = XMMatrixScaling(0.018, 0.018, 0.018) * XMMatrixTranslation(-2.3, -0.6, 0.0);
 
-	view = XMMatrixLookAtLH(Vector3(0, 0, -2), Vector3(0, 0, 0), Vector3(0, 1, 0));
+	view = XMMatrixLookAtLH(Vector3(0, 1, -3), Vector3(0, 0, 0), Vector3(0, 1, 0));
 	projection = XMMatrixPerspectiveFovLH(float(3.1415 * 0.45), float(640.0 / 480.0), float(0.5), float(20));
 
 	worldViewProjection = world * view * projection;
@@ -310,7 +312,6 @@ void CreateDepthBuffer()
 
 void CreateTexture()
 {
-	
 	D3D11_TEXTURE2D_DESC bthTexDesc;
 	ZeroMemory(&bthTexDesc, sizeof(bthTexDesc));
 	bthTexDesc.Width = BTH_IMAGE_WIDTH;
@@ -408,78 +409,6 @@ void CreateShaders()
 	pGS->Release();
 }
 
-/*void createPoints()
-{
-	struct Vertexpoints
-	{
-		float x, y, z;
-		float u, v;
-	};
-
-	std::vector<Vertexpoints>points;
-
-	Vertexpoints onePoint;
-
-	for (int i = 0; i < 3; i++)
-	{
-	
-	}
-
-	
-}*/
-/*void LoadHeigthmap()
-{
-	//height for each vertex 
-	
-	
-	//open file
-	std::ifstream openFile;
-	//ios_base, a class that represents witch opening mode, binary rather than text
-	openFile.open(fileData.heightmapImage.c_str(), std::ios_base::binary); 
-	DirectX::CreateWICTextureFromFile(gDevice, gDeviceContext, fileData.heightmapImage, &hTexture, &hTextureView, 0);
-
-	if (openFile)
-	{
-		//read the RAW bytes
-		//char* adress of the array of bytes where the read data are stored
-		//size, numder of characters to be read
-		//in, specifies the fileData 
-		openFile.read((char*)&in[0], (std::streamsize)in.size());
-
-		openFile.close();
-	}
-
-	//copy arraydata into a float array and scale it
-	mHeightmap.resize(fileData.heightmapHeight, fileData.heightmapWidth);
-	for (UINT i = 0; i < fileData.heightmapHeight * fileData.heightmapWidth; i++)
-	{
-		mHeightmap[i] = (in[i] / 255.0f) * fileData.heightScale;
-	}
-}*/
-void createHeightmapTexture()
-{
-	/*UINT HALF;
-
-	D3D11_TEXTURE2D_DESC texDesc;
-	ZeroMemory(&texDesc, sizeof(texDesc));
-	texDesc.Width = fileData.heightmapWidth;
-	texDesc.Height = fileData.heightmapHeight;
-	texDesc.MipLevels = 1;
-	texDesc.ArraySize = 1;
-	texDesc.Format = DXGI_FORMAT_R16_FLOAT;
-	texDesc.SampleDesc.Quality = 0;
-	texDesc.SampleDesc.Count = 1;
-	texDesc.Usage = D3D11_USAGE_DEFAULT;
-	texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	texDesc.CPUAccessFlags = 0;
-	texDesc.MiscFlags = 0;
-
-	std::vector<>;
-	D3D11_SUBRESOURCE_DATA hData;
-	hData.pSysMem = ;
-	hData.SysMemPitch = */
-
-}
 void CreateTriangleData()
 {
 	/*struct TriangleVertex
@@ -541,7 +470,7 @@ void SetViewport()
 void Render()
 {
 	// clear the back buffer to a deep blue
-	float clearColor[] = { 0, 0, 0, 1 };
+	float clearColor[] = { 1, 0, 0, 1 };
 	gDeviceContext->ClearRenderTargetView(gBackbufferRTV, clearColor);
 
 	gDeviceContext->ClearDepthStencilView(gDepthview, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -556,6 +485,7 @@ void Render()
 	UINT32 vertexSize = sizeof(Vertex);
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
+	gDeviceContext->IASetIndexBuffer(gIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	gDeviceContext->IASetInputLayout(gVertexLayout);
@@ -563,6 +493,7 @@ void Render()
 	UpdateConstantBuffer();
 
 	gDeviceContext->Draw(numVertices, 0);
+	gDeviceContext->DrawIndexed(numFaces* 3, 0, 0);
 	
 }
 
@@ -608,6 +539,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		gVertexBuffer->Release();
 		gConstantBuffer->Release(); //Prevents Memory Leaks
 		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
+		gIndexBuffer->Release();
 
 		gDepthview->Release(); //Prevents Memory Leaks
 		gTextureView->Release(); //Prevents Memory Leaks

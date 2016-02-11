@@ -10,7 +10,7 @@ struct GS_OUT
 
 float4 PS_main(GS_OUT input) : SV_Target
 {
-/*	float4 lightPosition = float4(0.0, 0.0, -10.0, 0.0);
+	float4 lightPosition = float4(0.0, 0.0, -10.0, 0.0);
 	float3 lightIntensity = float3(1.0, 1.0, 1.0);
 
 	float4 s = normalize(lightPosition - input.PosWorld); //Distance between the Object and the Light
@@ -21,7 +21,7 @@ float4 PS_main(GS_OUT input) : SV_Target
 
 	float3 diffuseLight = Kd * max(dot(s, input.Nor), 0.0f); //Calculates the Diffuse Light by taking "the Alpha" Angle times Kd
 
-	float4 rt = float4((lightIntensity * (diffuseLight)) , 1.0f); //Calculates the Light Intensity time the Diffuse Light*/
+	float4 rt = float4((lightIntensity * (diffuseLight)) , 1.0f); //Calculates the Light Intensity time the Diffuse Light
 
-	return float4(1, 1, 1, 1);
+	return float4(rt);
 };
