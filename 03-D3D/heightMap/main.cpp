@@ -47,6 +47,7 @@ ID3D10ShaderResourceView* hTextureView;
 ID3D11Texture2D *hTexture = NULL;
 
 ID3D11Buffer* gVertexBuffer = nullptr;
+ID3D11Buffer* ghVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
 ID3D11Buffer* gIndexBuffer = nullptr;
 ID3D11Buffer* gMaterialBuffer = nullptr;
@@ -230,17 +231,17 @@ bool InitScene()
 		}
 	}
 
-	D3D11_BUFFER_DESC VertexBufferDesc;
-	memset(&VertexBufferDesc, 0, sizeof(VertexBufferDesc));
-	VertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	VertexBufferDesc.ByteWidth = sizeof(Vertex) * numVertices;
-	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_BUFFER_DESC hVertexBufferDesc;
+	memset(&hVertexBufferDesc, 0, sizeof(hVertexBufferDesc));
+	hVertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	hVertexBufferDesc.ByteWidth = sizeof(Vertex) * numVertices;
+	hVertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-	D3D11_SUBRESOURCE_DATA VertexBufferData;
-	memset(&VertexBufferData, 0, sizeof(VertexBufferData));
-	VertexBufferData.pSysMem = &v[0];
+	D3D11_SUBRESOURCE_DATA hVertexBufferData;
+	memset(&hVertexBufferData, 0, sizeof(hVertexBufferData));
+	hVertexBufferData.pSysMem = &v[0];
 
-	gDevice->CreateBuffer(&VertexBufferDesc, &VertexBufferData, &gVertexBuffer);
+	gDevice->CreateBuffer(&hVertexBufferDesc, &hVertexBufferData, &ghVertexBuffer);
 
 	D3D11_BUFFER_DESC IndexBufferDesc;
 	memset(&IndexBufferDesc, 0, sizeof(IndexBufferDesc));
@@ -426,22 +427,22 @@ void CreateShaders()
 	// we do not need anymore this COM object, so we release it.
 	pPS->Release();
 
-	////create geometry shader
-	//ID3DBlob* pGS = nullptr;
-	//D3DCompileFromFile(
-	//	L"Geometry.hlsl", // filename
-	//	nullptr,		// optional macros
-	//	nullptr,		// optional include files
-	//	"GS_main",		// entry point
-	//	"gs_4_0",		// shader model (target)
-	//	0,				// shader compile options
-	//	0,				// effect compile options
-	//	&pGS,			// double pointer to ID3DBlob		
-	//	nullptr			// pointer for Error Blob messages.
-	//	);
+	//create geometry shader
+	ID3DBlob* pGS = nullptr;
+	D3DCompileFromFile(
+		L"Geometry.hlsl", // filename
+		nullptr,		// optional macros
+		nullptr,		// optional include files
+		"GS_main",		// entry point
+		"gs_4_0",		// shader model (target)
+		0,				// shader compile options
+		0,				// effect compile options
+		&pGS,			// double pointer to ID3DBlob		
+		nullptr			// pointer for Error Blob messages.
+		);
 
-	//gDevice->CreateGeometryShader(pGS->GetBufferPointer(), pGS->GetBufferSize(), nullptr, &gGeometryShader);
-	//pGS->Release();
+	gDevice->CreateGeometryShader(pGS->GetBufferPointer(), pGS->GetBufferSize(), nullptr, &gGeometryShader);
+	pGS->Release();
 }
 
 struct FBXData
@@ -1063,7 +1064,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		gVertexLayout->Release();
 		gVertexShader->Release();
 		gPixelShader->Release();
-		//gGeometryShader->Release(); //Prevents Memory Leaks
+		gGeometryShader->Release(); //Prevents Memory Leaks
 
 		DIKeyboard->Unacquire();		//We release controll over the device
 		DIMouse->Unacquire();			//We release controll over the device
