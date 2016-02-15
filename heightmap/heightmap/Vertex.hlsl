@@ -39,4 +39,3 @@ VS_OUT VS_main(VS_IN input)
 
 	return output;
 }
-

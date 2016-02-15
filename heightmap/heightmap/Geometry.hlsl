@@ -19,9 +19,9 @@ cbuffer VS_CONSTANT_BUFFER : register(b0)
 
 [maxvertexcount(6)]
 void GS_main(
-	triangle GS_IN input[3], 
+	triangle GS_IN input[3],
 	inout TriangleStream< GS_OUT > outputStream
-)
+	)
 {
 	GS_OUT output = (GS_OUT)0;
 
@@ -45,10 +45,10 @@ void GS_main(
 	/*outputStream.RestartStrip();
 	for (uint i = 0; i < 3; i++)
 	{
-		//Creates the second Quads Geometry
-		output.Pos = mul(input[i].Pos + float4(normal, 0), worldViewProj);
-		output.PosWorld = mul(input[i].Pos + float4(normal, 0), world);
-		output.Tex = input[i].Tex;
-		outputStream.Append(output);
+	//Creates the second Quads Geometry
+	output.Pos = mul(input[i].Pos + float4(normal, 0), worldViewProj);
+	output.PosWorld = mul(input[i].Pos + float4(normal, 0), world);
+	output.Tex = input[i].Tex;
+	outputStream.Append(output);
 	}*/
 }

@@ -4,22 +4,17 @@
 #include <DirectXMath.h>
 #include "SimpleMath.h"
 #include "bth_image.h"
-
-#include <vector>
-#include <iostream>
-#include <fstream>
-
 #include <dinput.h>
+#include <vector>
+#include "WICTextureLoader.h"
 #include <fbxsdk.h>
 #include <assert.h>
-#include "WICTextureLoader.h"
 
 //http://www.braynzarsoft.net/viewtutorial/q16390-braynzar-soft-directx-11-tutorials
 //https://drive.google.com/drive/folders/0BypxoNw8MhW3QzU5ZnVwc2Q5Wms
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
-using namespace std;
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
@@ -43,19 +38,14 @@ ID3D11ShaderResourceView* gTextureView = nullptr;
 ID3D11Texture2D *gTexture = NULL;
 ID3D11SamplerState* sampAni = nullptr;
 
-ID3D10ShaderResourceView* hTextureView;
-ID3D11Texture2D *hTexture = NULL;
-
 ID3D11Buffer* gVertexBuffer = nullptr;
-ID3D11Buffer* ghVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
-ID3D11Buffer* gIndexBuffer = nullptr;
 ID3D11Buffer* gMaterialBuffer = nullptr;
 
 ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
-ID3D11GeometryShader* gGeometryShader = nullptr;
+//ID3D11GeometryShader* gGeometryShader = nullptr;
 
 FbxManager* myManager = nullptr;	//Initialize both the manager and scene as nullptrs.
 FbxScene* myScene = nullptr;
@@ -66,12 +56,13 @@ XMVECTOR DefaultForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR DefaultRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-XMVECTOR camPosition = XMVectorSet(0.0f, 0.0f, -10.f, 0.0f);
+XMVECTOR camPosition = XMVectorSet(0.0f, 0.0f, -2.0f, 0.0f);
 XMVECTOR camTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 XMMATRIX camRotationMatrix;
 XMMATRIX camView;
+XMMATRIX camProjection;
 
 float moveLeftRight = 0.0f;
 float moveBackForward = 0.0f;
@@ -83,182 +74,7 @@ IDirectInputDevice8* DIMouse;
 
 DIMOUSESTATE mouseLastState;
 LPDIRECTINPUT8 DirectInput;
-//----------------------------------------------
 
-int numFaces = 0;
-int numVertices = 0;
-
-struct Vertex
-{
-	Vertex() {};
-	Vertex(float x, float y, float z,
-		float u, float v, float nx,
-		float ny, float nz)
-		:pos(x, y, z), texCoord(u, v), nor(nx, ny, nz){}
-
-	XMFLOAT3 pos;
-	XMFLOAT2 texCoord;
-	XMFLOAT3 nor;
-};
-
-struct HeightMapInfo
-{
-	int terrainHeight;
-	int terrainWidth;
-	XMFLOAT3 *heightMap; //array to store terrain's vertex positions
-};
-
-bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo);
-bool InitScene();
-
-//function that loads a bmp image and stores hm info in the HeightMapInfo structure
-bool HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
-{	
-	FILE *filePointer;					//point to the current position in the file
-	BITMAPFILEHEADER bitmapFileHeader;	//structure that contains info about type, size, layout of the file
-	BITMAPINFOHEADER bitmapInfoHeader;	//contains info about the image inside the file
-	int imageSize, index;				//index = keeps track of current place in the grid 
-										//when filling the hmap structure with pos info
-	unsigned char height;				//load in the color value for current read texel
-										//we need just one value of the RBG because its a grayscale image 
-
-	filePointer = fopen(filename, "rb"); //r = read, b = binary file 
-	if (filePointer == NULL)
-		return 0;
-
-	//read bitmaps header
-	//pointer to a block of memory, size in bytes of each element, number of elements
-	//pointer to FILE objekt that specifies an input stream
-	fread(&bitmapFileHeader, sizeof(BITMAPFILEHEADER), 1, filePointer);
-
-	//read info header
-	fread(&bitmapInfoHeader, sizeof(BITMAPINFOHEADER), 1, filePointer);
-
-	//get width and height of the image
-	heightMInfo.terrainHeight = bitmapInfoHeader.biHeight;
-	heightMInfo.terrainWidth = bitmapInfoHeader.biWidth;
-
-	int rowBytes = bitmapInfoHeader.biWidth * bitmapInfoHeader.biPlanes;
-	rowBytes += 3 - (rowBytes - 1) % 4; // Round up to nearest multiple of 4
-	//size of the image in bytes. 3 = RGB (byte, byte, byte) for each pixel
-	//imageSize = heightMInfo.terrainHeight * rowBytes;
-
-	//array that stores the image data
-	unsigned char* bitmapImage = new unsigned char[bitmapInfoHeader.biSizeImage];
-
-	//set the file pointer to the beginning of the image data
-	//filePointer = sets the position indicator associated with the stream to a new position
-	//bfoffBits = offset, SEEK_SET = beginning of file
-	fseek(filePointer, bitmapFileHeader.bfOffBits, SEEK_SET);
-
-	//store image data in bitmapImage
-	fread(bitmapImage, 1, bitmapInfoHeader.biSizeImage, filePointer);
-	fclose(filePointer);
-
-	//initialize  the hmap array (stores the verices of the terrain)
-	heightMInfo.heightMap = new XMFLOAT3[heightMInfo.terrainHeight * heightMInfo.terrainWidth];
-
-	//divide the height by 10 to water down the terrains height, to smooth the terrain 
-	float heightFactor = 10.0f;
-
-	//read the image data info into our heightMap array
-	for (int j = 0; j < heightMInfo.terrainHeight; j++)
-	{
-		for (int i = 0; i < heightMInfo.terrainWidth; i++)
-		{
-			height = bitmapImage[j * rowBytes + i * bitmapInfoHeader.biPlanes];
-
-			index = (heightMInfo.terrainWidth * j) + i;
-
-			heightMInfo.heightMap[index].x = (float)i;
-			heightMInfo.heightMap[index].y = (float)height / heightFactor;
-			heightMInfo.heightMap[index].z = (float)j;
-		}
-	}
-	delete[] bitmapImage;
-	bitmapImage = 0;
-
-	return true;
-}
-bool InitScene()
-{
-	//the bitmaps filename i being passed to the hmInfo object
-	//so it can loaded with the info of the heightmap
-	HeightMapInfo hmInfo;
-	HeightMapLoad("J:\GitHub\Project3D\03-D3D\heightMap", hmInfo);
-
-	//width and length(cols, rows) of the grid(vertices)
-	int cols = hmInfo.terrainWidth;
-	int rows = hmInfo.terrainHeight;
-
-	//Create the grid 
-	numVertices = rows * cols; //to get nr of quads
-	numFaces = (rows - 1) * (cols - 1) * 2; //mult with 2 to get the nr of triangles 
-											//since it's two triangles in each quad
-	//vector to hold all the vertices
-	std::vector<Vertex> v(numVertices);
-
-	//loop throgh each col and row of the grid
-	for (DWORD i = 0; i < rows; i++)
-	{
-		for (DWORD j = 0; j < cols; j++)
-		{
-			//define the position of each vertex by using hmInfos info
-			v[i*cols + j].pos = hmInfo.heightMap[i*cols + j];
-			//initializing the normal so it points directly up, faces of the terrain will be lit equally
-			//if you have a normal defined in the hmap file, set it here the same way as the position(saves runtime) 
-			v[i*cols + j].nor = XMFLOAT3(0.0f, 1.0f, 0.0f);
-			v[i*cols + j].texCoord = XMFLOAT2(float(i) / rows, float(j) / cols);
-
-		}
-	}
-
-	std::vector<DWORD> indices(numFaces * 3);
-
-	int k = 0;
-	for (DWORD i = 0; i < rows - 1; i++)
-	{
-		for (DWORD j = 0; j < cols - 1; j++)
-		{
-			indices[k] = i * cols + j;
-			indices[k + 2] = i * cols + j + 1;
-			indices[k + 1] = (i + 1) * cols + j;
-			indices[k + 3] = (i + 1) * cols + j;
-			indices[k + 5] = i * cols + j + 1;
-			indices[k + 4] = (i + 1) * cols + j + 1;
-
-			k += 6;
-		}
-	}
-
-	D3D11_BUFFER_DESC hVertexBufferDesc;
-	memset(&hVertexBufferDesc, 0, sizeof(hVertexBufferDesc));
-	hVertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	hVertexBufferDesc.ByteWidth = sizeof(Vertex) * numVertices;
-	hVertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-	D3D11_SUBRESOURCE_DATA hVertexBufferData;
-	memset(&hVertexBufferData, 0, sizeof(hVertexBufferData));
-	hVertexBufferData.pSysMem = &v[0];
-
-	gDevice->CreateBuffer(&hVertexBufferDesc, &hVertexBufferData, &ghVertexBuffer);
-
-	D3D11_BUFFER_DESC IndexBufferDesc;
-	memset(&IndexBufferDesc, 0, sizeof(IndexBufferDesc));
-	IndexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	IndexBufferDesc.ByteWidth = sizeof(DWORD) * numFaces * 3;
-	IndexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-	D3D11_SUBRESOURCE_DATA IndexBufferData;
-	memset(&IndexBufferData, 0, sizeof(IndexBufferData));
-	IndexBufferData.pSysMem = &indices[0];
-
-	gDevice->CreateBuffer(&IndexBufferDesc, &IndexBufferData, &gIndexBuffer);
-
-	return true;
-}
-
-//-----------------------------------------------
 bool InitDirectInput(HINSTANCE hInstance);
 void DetectInput(double time);
 
@@ -285,7 +101,7 @@ struct VS_CONSTANT_BUFFER
 	Matrix world;
 };
 
-struct cam{ Vector3 camPos;};
+struct cam { Vector3 camPos; };
 
 void CreateConstantBuffer()
 {
@@ -308,19 +124,17 @@ void UpdateConstantBuffer()
 	VS_CONSTANT_BUFFER* dataPtr;
 
 	Matrix world;
-	Matrix projection;
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-	rotation += 0.01f;
+	//rotation += 0.1f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
 
-	//world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
-	world = XMMatrixScaling(0.018, 0.018, 0.018) * XMMatrixTranslation(-2.3, -0.6, -2.0);
-	projection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
+	world = XMMatrixTranslation(0, 0, 0) * XMMatrixRotationY(XMConvertToRadians(rotation));
+	camProjection = XMMatrixPerspectiveFovLH(float(3.1415*0.45), float(640.0 / 480.0), float(0.5), float(20));
 
-	worldViewProjection = world * camView * projection;
+	worldViewProjection = world * camView * camProjection;
 	worldViewProjection = worldViewProjection.Transpose();
 
 	world = world.Transpose();
@@ -354,7 +168,7 @@ void CreateDepthBuffer()
 	desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 	desc.CPUAccessFlags = 0;
 	desc.MiscFlags = 0;
-	
+
 	gDevice->CreateTexture2D(&desc, 0, &gDepthStencilBuffer);
 
 	gDevice->CreateDepthStencilView(gDepthStencilBuffer, 0, &gDepthview);
@@ -400,8 +214,9 @@ void CreateShaders()
 
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		/*{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
@@ -424,11 +239,11 @@ void CreateShaders()
 		);
 
 	gDevice->CreatePixelShader(pPS->GetBufferPointer(), pPS->GetBufferSize(), nullptr, &gPixelShader);
-	// we do not need anymore this COM object, so we release it.
+	//we do not need anymore this COM object, so we release it.
 	pPS->Release();
 
 	//create geometry shader
-	ID3DBlob* pGS = nullptr;
+	/*ID3DBlob* pGS = nullptr;
 	D3DCompileFromFile(
 		L"Geometry.hlsl", // filename
 		nullptr,		// optional macros
@@ -442,7 +257,7 @@ void CreateShaders()
 		);
 
 	gDevice->CreateGeometryShader(pGS->GetBufferPointer(), pGS->GetBufferSize(), nullptr, &gGeometryShader);
-	pGS->Release();
+	pGS->Release();*/
 }
 
 struct FBXData
@@ -936,7 +751,6 @@ void CreateTriangleData()
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-
 	bufferDesc.ByteWidth = aVector.size() * sizeof(FBXData);
 
 	vertexVector = aVector.size();
@@ -961,7 +775,7 @@ void SetViewport()
 void Render()
 {
 	// clear the back buffer to a deep blue
-	float clearColor[] = { 1, 0, 0, 1 };
+	float clearColor[] = { 0, 0, 0, 1 };
 	gDeviceContext->ClearRenderTargetView(gBackbufferRTV, clearColor);
 
 	gDeviceContext->ClearDepthStencilView(gDepthview, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -976,15 +790,12 @@ void Render()
 	UINT32 vertexSize = sizeof(FBXData);
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
-	gDeviceContext->IASetIndexBuffer(gIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	gDeviceContext->IASetInputLayout(gVertexLayout);
 
 	UpdateConstantBuffer();
 
-	gDeviceContext->DrawIndexed(numFaces* 3, 0, 0);
-	
 	gDeviceContext->PSSetConstantBuffers(0, 1, &gMaterialBuffer);
 
 	gDeviceContext->Draw(vertexVector, 0);
@@ -1021,8 +832,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 								//CreateTexture();
 
-		InitScene();
-
 		ShowWindow(wndHandle, nCmdShow);
 
 		while (WM_QUIT != msg.message)
@@ -1055,16 +864,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		gConstantBuffer->Release();		//Prevents Memory Leaks
 		gMaterialBuffer->Release();		//Prevents Memory Leaks
 		gDepthStencilBuffer->Release(); //Prevents Memory Leaks
-		gIndexBuffer->Release();
 
 		gDepthview->Release();			//Prevents Memory Leaks
-		/*gTextureView->Release();*/	//Prevents Memory Leaks
-		/*gTexture->Release();*/		//Prevents Memory Leaks
+										/*gTextureView->Release();*/	//Prevents Memory Leaks
+																		/*gTexture->Release();*/		//Prevents Memory Leaks
 
 		gVertexLayout->Release();
 		gVertexShader->Release();
 		gPixelShader->Release();
-		gGeometryShader->Release(); //Prevents Memory Leaks
+		//gGeometryShader->Release(); //Prevents Memory Leaks
 
 		DIKeyboard->Unacquire();		//We release controll over the device
 		DIMouse->Unacquire();			//We release controll over the device
@@ -1190,7 +998,9 @@ bool InitDirectInput(HINSTANCE hInstance)
 	hr = DIKeyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
 
 	hr = DIMouse->SetDataFormat(&c_dfDIMouse);			//Lets us tell the device what kind of input we are expecting
+														
 	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
+
 
 	return true;
 }
@@ -1256,6 +1066,7 @@ void DetectInput(double time)
 	{
 		moveBackForward -= speed;			//Moves the camera back
 	}
+	
 	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY)) //We check where the mouse are now
 	{
 		camYaw += mouseLastState.lX * 0.001f;
