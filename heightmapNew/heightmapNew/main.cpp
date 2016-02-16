@@ -159,7 +159,9 @@ bool InitScene()
 	numFaces = (rows - 1) * (cols - 1) * 2; //mult with 2 to get the nr of triangles 
 											//since it's two triangles in each quad
 											//vector to hold all the vertices
+	
 	std::vector<Vertex> v(numVertices);
+
 
 	//loop throgh each col and row of the grid
 	for (DWORD i = 0; i < rows; i++)
@@ -172,6 +174,14 @@ bool InitScene()
 			//if you have a normal defined in the hmap file, set it here the same way as the position(saves runtime) 
 			v[i*cols + j].nor = XMFLOAT3(0.0f, 1.0f, 0.0f);
 			v[i*cols + j].texCoord = XMFLOAT2(float(i) / rows, float(j) / cols);
+
+		}
+	}
+
+	for (DWORD k = 0; k < rows; k++)
+	{
+		for (DWORD l = 0; l < cols; l++)
+		{
 
 		}
 	}
