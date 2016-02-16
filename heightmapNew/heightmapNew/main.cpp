@@ -153,16 +153,26 @@ bool InitScene()
 	//width and length(cols, rows) of the grid(vertices)
 	int cols = hmInfo.terrainWidth;
 	int rows = hmInfo.terrainHeight;
+	int k = 0;
 
 	//Create the grid 
 	numVertices = rows * cols; //to get nr of quads
-	numFaces = (rows - 1) * (cols - 1) * 2; //mult with 2 to get the nr of triangles 
-											//since it's two triangles in each quad
-											//vector to hold all the vertices
-	
-	std::vector<Vertex> v(numVertices);
+	numFaces = (rows - 1) * (cols - 1) * 2; //mult with 2 to get the nr of triangles, since it's two triangles in each quad
+											
+	XMFLOAT3 unnormalized = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	float vecX, vecY, vecZ;
+	XMVECTOR edge1 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+	XMVECTOR edge2 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 
+	//compute vertex normals (normal averaging)
+	XMVECTOR norSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+	int facesUsing = 0;
+	float tX;
+	float tY;
+	float tZ;
 
+	//vector to hold all the vertices
+	std::vector<Vertex> v(numVertices); 
 	//loop throgh each col and row of the grid
 	for (DWORD i = 0; i < rows; i++)
 	{
@@ -178,17 +188,7 @@ bool InitScene()
 		}
 	}
 
-	for (DWORD k = 0; k < rows; k++)
-	{
-		for (DWORD l = 0; l < cols; l++)
-		{
-
-		}
-	}
-
 	std::vector<DWORD> indices(numFaces * 3);
-
-	int k = 0;
 	for (DWORD i = 0; i < rows - 1; i++)
 	{
 		for (DWORD j = 0; j < cols - 1; j++)
@@ -202,6 +202,57 @@ bool InitScene()
 
 			k += 6;
 		}
+	}
+
+	std::vector<XMFLOAT3> tmpNormal;
+	for (int i = 0; i < numFaces; i++)
+	{
+		//get the vector describing one edge of the triangle (edge 0,2)
+		vecX = v[indices[(i * 3)]].pos.x - v[indices[(i * 3) + 2]].pos.x;
+		vecY = v[indices[(i * 3)]].pos.y - v[indices[(i * 3) + 2]].pos.y;
+		vecZ = v[indices[(i * 3)]].pos.z - v[indices[(i * 3) + 2]].pos.z;
+		edge1 = XMVectorSet(vecX, vecY, vecZ, 0.0f);	//create first edge 
+
+		//edge(2,1)
+		vecX = v[indices[(i * 3) + 2]].pos.x - v[indices[(i * 3) + 1]].pos.x;
+		vecY = v[indices[(i * 3) + 2]].pos.y - v[indices[(i * 3) + 1]].pos.y;
+		vecZ = v[indices[(i * 3) + 2]].pos.z - v[indices[(i * 3) + 1]].pos.z;
+		edge2 = XMVectorSet(vecX, vecY, vecZ, 0.0f);	//create second edge 
+
+		//get unnormalized face normal by cross multiply the two edge vectors   
+		XMVECTOR faceNormal = XMVector3Cross(edge1, edge2);
+		tmpNormal.push_back(unnormalized);	//save unnormalized normal(for normal averaging)
+	}
+
+	//go throgh each vertex
+	for (int i = 0; i < numVertices; i++)
+	{
+		//check which triangles use this vertex 
+		for (int j = 0; j < numFaces; j++)
+		{
+			if (indices[j * 3] == i || indices[(j * 3) + 1] == i || indices[(j * 3) + 2] == i)
+			{
+				tX = XMVectorGetX(norSum) + tmpNormal[j].x;
+				tY = XMVectorGetY(norSum) + tmpNormal[j].y;
+				tZ = XMVectorGetY(norSum) + tmpNormal[j].z;
+
+				norSum = XMVectorSet(tX, tY, tZ, 0.0f);
+				facesUsing++;
+			}
+		}
+
+		//get normal by dividing the norSum by th nr of faces sharing the vertex
+		norSum = norSum / facesUsing;
+		norSum = XMVector3Normalize(norSum);
+
+		//store the normal in current vertex
+		v[i].nor.x = XMVectorGetX(norSum);
+		v[i].nor.y = XMVectorGetX(norSum);
+		v[i].nor.z = XMVectorGetX(norSum);
+
+		//clear norSum and facesUsing for next vertex
+		norSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+		facesUsing = 0;
 	}
 
 	D3D11_BUFFER_DESC VertexBufferDesc;
