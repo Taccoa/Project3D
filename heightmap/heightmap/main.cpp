@@ -39,6 +39,7 @@ ID3D11Texture2D *gTexture = NULL;
 ID3D11SamplerState* sampAni = nullptr;
 
 ID3D11Buffer* gVertexBuffer = nullptr;
+ID3D11Buffer* ghVertexBuffer = nullptr;
 ID3D11Buffer* gConstantBuffer = nullptr;
 ID3D11Buffer* gMaterialBuffer = nullptr;
 
@@ -335,7 +336,7 @@ FbxMesh* LoadScene(FbxManager* pManager, FbxScene* pScene)
 
 	FbxMesh* myMesh = nullptr;
 
-	bool importStatus = myImporter->Initialize("//storage10.student.bth.se/students/20142/maml14/test.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
+	bool importStatus = myImporter->Initialize("J:/testMeshes/cube.fbx", -1, pManager->GetIOSettings()); //Initialize the importer with a filename.
 
 	if (!importStatus) //If the importer can't be initialized.
 	{
@@ -789,7 +790,7 @@ void Render()
 
 	UINT32 vertexSize = sizeof(FBXData);
 	UINT32 offset = 0;
-	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
+	gDeviceContext->IASetVertexBuffers(0, 2, &gVertexBuffer, &vertexSize, &offset);
 
 	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	gDeviceContext->IASetInputLayout(gVertexLayout);
@@ -799,6 +800,8 @@ void Render()
 	gDeviceContext->PSSetConstantBuffers(0, 1, &gMaterialBuffer);
 
 	gDeviceContext->Draw(vertexVector, 0);
+
+
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
@@ -808,7 +811,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 	if (!InitDirectInput(hInstance)) //We call our function and controlls that it does load
 	{
-		MessageBox(0, L"Direct Input Initialization - Failed", L"Error", MB_OK);
+		MessageBox(0, "Direct Input Initialization - Failed", "Error", MB_OK);
 		return 0;
 	}
 
@@ -895,14 +898,14 @@ HWND InitWindow(HINSTANCE hInstance)
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = WndProc;
 	wcex.hInstance = hInstance;
-	wcex.lpszClassName = L"BTH_D3D_DEMO";
+	wcex.lpszClassName = "BTH_D3D_DEMO";
 	if (!RegisterClassEx(&wcex))
 		return false;
 
 	RECT rc = { 0, 0, 640, 480 };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
-	HWND handle = CreateWindow(
+	HWND handle = CreateWindowW(
 		L"BTH_D3D_DEMO",
 		L"BTH Direct3D Demo",
 		WS_OVERLAPPEDWINDOW,
