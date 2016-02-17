@@ -159,7 +159,7 @@ bool InitScene()
 	numVertices = rows * cols; //to get nr of quads
 	numFaces = (rows - 1) * (cols - 1) * 2; //mult with 2 to get the nr of triangles, since it's two triangles in each quad
 											
-	XMFLOAT3 unnormalized = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	/*MFLOAT3 unnormalized = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	float vecX, vecY, vecZ;
 	XMVECTOR edge1 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	XMVECTOR edge2 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
@@ -169,7 +169,7 @@ bool InitScene()
 	int facesUsing = 0;
 	float tX;
 	float tY;
-	float tZ;
+	float tZ;*/
 
 	//vector to hold all the vertices
 	std::vector<Vertex> v(numVertices); 
@@ -204,7 +204,7 @@ bool InitScene()
 		}
 	}
 
-	std::vector<XMFLOAT3> tmpNormal;
+	/*std::vector<XMFLOAT3> tmpNormal;
 	for (int i = 0; i < numFaces; i++)
 	{
 		//get the vector describing one edge of the triangle (edge 0,2)
@@ -253,7 +253,7 @@ bool InitScene()
 		//clear norSum and facesUsing for next vertex
 		norSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 		facesUsing = 0;
-	}
+	}*/
 
 	D3D11_BUFFER_DESC VertexBufferDesc;
 	memset(&VertexBufferDesc, 0, sizeof(VertexBufferDesc));
