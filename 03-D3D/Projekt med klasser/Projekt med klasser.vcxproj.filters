@@ -83,4 +83,9 @@
       <Filter>Resource Files\Shaders</Filter>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="heightMap.bmp">
+      <Filter>Resource Files\Include Files</Filter>
+    </Image>
+  </ItemGroup>
 </Project>
