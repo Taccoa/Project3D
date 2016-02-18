@@ -63,13 +63,13 @@ float4 PS_main(GS_OUT input) : SV_Target
 		color = shaderTexture.Sample(sampAni, input.Tex).xyz; //Gets the texture and puts it with the UV Coordinates on the Quad
 
 		diffuseLight = color * diffuse * max(dot(s, input.Nor), 0.0f); //Calculates the Diffuse Light by taking "the Alpha" Angle times Kd
-		ambientLight = color * ambient + float3(0.2, 0.2, 0.2);
+		ambientLight = color * ambient;
 		specularLight = color * specular * pow(max(dot(r, v), 0.0f), shininess);
 	}
 	else
 	{
 		diffuseLight = diffuse * max(dot(s, input.Nor), 0.0f); //Calculates the Diffuse Light by taking "the Alpha" Angle times Kd
-		ambientLight = ambient + float3(0.2, 0.2, 0.2);
+		ambientLight = ambient;
 		specularLight = specular * pow(max(dot(r, v), 0.0f), shininess);
 	}
 
