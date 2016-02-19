@@ -44,7 +44,11 @@ FbxMesh* FBX::LoadScene(FbxManager* pManager, FbxScene* pScene)
 
 	FbxMesh* myMesh = nullptr;
 
+<<<<<<< HEAD
 	bool importStatus = myImporter->Initialize("J:/testMeshes/cube.FBX", -1, pManager->GetIOSettings()); //Initialize the importer with a filename
+=======
+	bool importStatus = myImporter->Initialize("E:/meshTest/cubeTexture.FBX", -1, pManager->GetIOSettings()); //Initialize the importer with a filename
+>>>>>>> origin/viewFrustum
 
 	/*Beware: Use only front slash for the filepath of the model that is to be imported. Otherwise importStatus would return false!*/
 

@@ -38,7 +38,7 @@ cbuffer MaterialBuffer
 float4 PS_main(GS_OUT input) : SV_Target
 {
 	float4 lightPosition = float4(0.0, 0.0, -10.0, 0.0);
-	float3 lightIntensity = float3(0.9, 0.9, 0.9);
+	float3 lightIntensity = float3(1.9, 1.9, 1.9);
 
 	float3 s = normalize(lightPosition.xyz - input.WPos.xyz); //Distance between the Object and the Light
 	float3 v = normalize(camPos - input.WPos); //Distance between the Object and the Camera
