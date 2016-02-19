@@ -54,8 +54,10 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 
 		terrainPtr->CreateHeightTexture();
 
+		//--------------------------------------
 		terrainPtr->CreateTerrainMatrixBuffer();
 		terrainPtr->createTerrainMaterialBuffer();
+		//--------------------------------------
 
 		ShowWindow(wndHandle, nCmdShow);
 

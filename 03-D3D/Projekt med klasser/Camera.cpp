@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include "FbxImport.h"
+//#include "Terrain.h"
 
 Camera::Camera(){}
 
@@ -74,6 +75,7 @@ void Camera::UpdateCamera()
 	camTarget = camPosition + camTarget;										//Adds the position with the target
 
 	fbxPtr->test.camPos = camPosition;
+	//terrainPtr->material.camPos = camPosition;
 
 	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);					//Stores the NEW View Matrix
 }

@@ -17,8 +17,10 @@ Terrain::~Terrain()
 	hTextureView->Release();
 	hTexture->Release();
 	gIndexBuffer->Release();
+	//----------------------------
 	terrainMatrixBuffer->Release();
 	terrainMaterialBuffer->Release();
+	//----------------------------
 }
 
 //function that loads a bmp image and stores hm info in the HeightMapInfo structure
@@ -92,7 +94,7 @@ bool Terrain::HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
 }
 bool Terrain::InitScene()
 {
-
+	//--------------------------------------------------------
 	material.ambient = XMFLOAT3(0.2f, 0.2f, 0.2f);
 	material.transparency = float(0.0f);
 	material.diffuse = XMFLOAT3(1.0f, 1.0f, 1.0f);
@@ -100,6 +102,7 @@ bool Terrain::InitScene()
 	material.specular = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	material.reflection = float(0.2f);
 	material.textureBool = true;
+	//--------------------------------------------------------
 
 	//the bitmaps filename i being passed to the hmInfo object
 	//so it can loaded with the info of the heightmap
@@ -274,6 +277,7 @@ void Terrain::UpdateTerrainMatrixBuffer()
 
 }
 
+//---------------------------------------------------------------------
 void Terrain::createTerrainMaterialBuffer()
 {
 
@@ -301,3 +305,4 @@ void Terrain::updateTerrainMaterialBuffer()
 	enginePtr->gDeviceContext->PSSetConstantBuffers(0, 1, &terrainMaterialBuffer);
 	
 }
+//----------------------------------------------------------------------

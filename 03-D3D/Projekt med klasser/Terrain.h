@@ -6,7 +6,6 @@
 
 class Engine;
 class Camera;
-class System;
 
 class Terrain
 {
@@ -18,9 +17,10 @@ public:
 
 	Camera* cameraPtr;
 	Engine* enginePtr;
-	System* systemPtr;
 
+	//-----------------------------
 	FBX::MaterialBuffer material;
+	//-----------------------------
 
 	struct HeightMapInfo
 	{
@@ -55,8 +55,10 @@ public:
 	void CreateTerrainMatrixBuffer();
 	void UpdateTerrainMatrixBuffer();
 
+	//------------------------------------
 	void createTerrainMaterialBuffer();
 	void updateTerrainMaterialBuffer();
+	//------------------------------------
 
 private:
 
