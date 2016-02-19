@@ -8,8 +8,6 @@ public:
 	Frustum();
 	~Frustum();
 
-	void 
-
 private:
 
 };

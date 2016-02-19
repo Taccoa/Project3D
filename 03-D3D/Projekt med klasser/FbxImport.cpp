@@ -44,20 +44,16 @@ FbxMesh* FBX::LoadScene(FbxManager* pManager, FbxScene* pScene)
 
 	FbxMesh* myMesh = nullptr;
 
-<<<<<<< HEAD
 	bool importStatus = myImporter->Initialize("J:/testMeshes/cube.FBX", -1, pManager->GetIOSettings()); //Initialize the importer with a filename
-=======
-	bool importStatus = myImporter->Initialize("E:/meshTest/cubeTexture.FBX", -1, pManager->GetIOSettings()); //Initialize the importer with a filename
->>>>>>> origin/viewFrustum
 
 	/*Beware: Use only front slash for the filepath of the model that is to be imported. Otherwise importStatus would return false!*/
 
-	if (!importStatus) //If the importer can't be initialized.
+	/*if (!importStatus) //If the importer can't be initialized.
 	{
 		FbxString error = myImporter->GetStatus().GetErrorString();
 		FBXSDK_printf("Error: Can't Initialize importer");
 		exit(1);
-	}
+	}*/
 
 	importStatus = myImporter->Import(pScene); //Import the created scene.
 
