@@ -2,8 +2,6 @@
 #define FBXIMPORT_H
 
 #include "Linker.h"
-#include "Engine.h"
-#include "System.h"
 class System;
 
 struct FBXData
@@ -38,7 +36,7 @@ public:
 		XMFLOAT3 specular;
 		float reflection;
 
-		bool textureBool = false;
+		int textureBool = false;
 		float padding[3];
 
 		Vector4 camPos;

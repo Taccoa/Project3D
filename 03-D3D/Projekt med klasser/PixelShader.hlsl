@@ -40,7 +40,7 @@ float4 PS_main(GS_OUT input) : SV_Target
 	float4 lightPosition = float4(0.0, 0.0, -10.0, 0.0);
 	float3 lightIntensity = float3(0.9, 0.9, 0.9);
 
-	float4 s = normalize(lightPosition - input.WPos); //Distance between the Object and the Light
+	float3 s = normalize(lightPosition.xyz - input.WPos.xyz); //Distance between the Object and the Light
 	float3 v = normalize(camPos - input.WPos); //Distance between the Object and the Camera
 
 	float3 color;

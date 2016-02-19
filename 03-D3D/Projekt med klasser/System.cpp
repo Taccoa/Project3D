@@ -1,4 +1,8 @@
 #include "Linker.h"
+#include "Camera.h"
+#include "FbxImport.h"
+#include "Terrain.h"
+#include "Engine.h"
 #include "System.h"
 
 System::System()
@@ -51,6 +55,7 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 		terrainPtr->CreateHeightTexture();
 
 		terrainPtr->CreateTerrainMatrixBuffer();
+		terrainPtr->createTerrainMaterialBuffer();
 
 		ShowWindow(wndHandle, nCmdShow);
 
@@ -70,6 +75,7 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 				fbxPtr->RenderFBX();
 				
 				terrainPtr->UpdateTerrainMatrixBuffer();
+				terrainPtr->updateTerrainMaterialBuffer();
 				terrainPtr->RenderTerrain();
 
 				cameraPtr->initCamera();

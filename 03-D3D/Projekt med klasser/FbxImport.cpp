@@ -1,4 +1,6 @@
 #include "FbxImport.h"
+#include "System.h" 
+#include "Engine.h"
 
 FBX::FBX()
 {
@@ -391,10 +393,6 @@ void FBX::ImportTexture(FbxMesh* pMesh)
 
 					test.textureBool = true;
 				}
-			}
-			else
-			{
-				test.textureBool = false;
 			}
 		}
 	}

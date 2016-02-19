@@ -2,12 +2,11 @@
 #define TERRAIN_H
 
 #include "Linker.h"
-#include "Engine.h"
-#include "Camera.h"
 #include "FBXImport.h"
 
 class Engine;
 class Camera;
+class System;
 
 class Terrain
 {
@@ -18,7 +17,11 @@ public:
 	~Terrain();
 
 	Camera* cameraPtr;
-	
+	Engine* enginePtr;
+	System* systemPtr;
+
+	FBX::MaterialBuffer material;
+
 	struct HeightMapInfo
 	{
 		int terrainHeight;
@@ -39,6 +42,7 @@ public:
 	bool InitScene();
 
 	ID3D11Buffer* terrainMatrixBuffer = nullptr;
+	ID3D11Buffer* terrainMaterialBuffer = nullptr;
 	ID3D11Buffer* hVertexBuffer = nullptr;
 	ID3D11ShaderResourceView* hTextureView;
 	ID3D11Texture2D *hTexture = NULL;
@@ -46,12 +50,13 @@ public:
 
 	void CreateHeightTexture();
 
-	Engine* enginePtr;
-
 	void RenderTerrain();
 
 	void CreateTerrainMatrixBuffer();
 	void UpdateTerrainMatrixBuffer();
+
+	void createTerrainMaterialBuffer();
+	void updateTerrainMaterialBuffer();
 
 private:
 

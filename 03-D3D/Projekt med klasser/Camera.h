@@ -2,7 +2,6 @@
 #define CAMERA_H
 
 #include "Linker.h"
-#include "FbxImport.h"
 class FBX;
 
 class Camera

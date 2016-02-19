@@ -2,6 +2,9 @@
 
 #include "Linker.h"
 #include "bth_image.h"
+#include "Camera.h"
+#include "Engine.h"
+#include "System.h"
 
 Terrain::Terrain()
 {
@@ -15,6 +18,7 @@ Terrain::~Terrain()
 	hTexture->Release();
 	gIndexBuffer->Release();
 	terrainMatrixBuffer->Release();
+	terrainMaterialBuffer->Release();
 }
 
 //function that loads a bmp image and stores hm info in the HeightMapInfo structure
@@ -88,6 +92,15 @@ bool Terrain::HeightMapLoad(char* filename, HeightMapInfo &heightMInfo)
 }
 bool Terrain::InitScene()
 {
+
+	material.ambient = XMFLOAT3(0.2f, 0.2f, 0.2f);
+	material.transparency = float(0.0f);
+	material.diffuse = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	material.shininess = float(1.0f);
+	material.specular = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	material.reflection = float(0.2f);
+	material.textureBool = true;
+
 	//the bitmaps filename i being passed to the hmInfo object
 	//so it can loaded with the info of the heightmap
 	HeightMapInfo hmInfo;
@@ -172,6 +185,7 @@ bool Terrain::InitScene()
 
 void Terrain::CreateHeightTexture()
 {
+
 	D3D11_TEXTURE2D_DESC bthTexDesc;
 	ZeroMemory(&bthTexDesc, sizeof(bthTexDesc));
 	bthTexDesc.Width = BTH_IMAGE_WIDTH;
@@ -258,4 +272,32 @@ void Terrain::UpdateTerrainMatrixBuffer()
 
 	enginePtr->gDeviceContext->VSSetConstantBuffers(0, 1, &terrainMatrixBuffer);
 
+}
+
+void Terrain::createTerrainMaterialBuffer()
+{
+
+	D3D11_BUFFER_DESC desc;
+	desc.Usage = D3D11_USAGE_DYNAMIC;
+	desc.ByteWidth = sizeof(FBX::MaterialBuffer);
+	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	desc.MiscFlags = 0;
+	desc.StructureByteStride = 0;
+
+	enginePtr->gDevice->CreateBuffer(&desc, NULL, &terrainMaterialBuffer);
+}
+
+void Terrain::updateTerrainMaterialBuffer()
+{
+	D3D11_MAPPED_SUBRESOURCE tSubr;
+
+	enginePtr->gDeviceContext->Map(terrainMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &tSubr);
+
+	memcpy(tSubr.pData, &material, sizeof(FBX::MaterialBuffer));
+
+	enginePtr->gDeviceContext->Unmap(terrainMaterialBuffer, 0);
+
+	enginePtr->gDeviceContext->PSSetConstantBuffers(0, 1, &terrainMaterialBuffer);
+	
 }

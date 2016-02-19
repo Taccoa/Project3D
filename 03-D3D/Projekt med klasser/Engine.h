@@ -2,12 +2,7 @@
 #define ENGINE_H
 
 #include "Linker.h"
-#include "FbxImport.h"
-#include "Camera.h"
-#include "Terrain.h"
-class FBX;
 class Camera;
-class Terrain;
 
 class Engine
 {

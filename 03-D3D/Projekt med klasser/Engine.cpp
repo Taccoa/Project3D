@@ -1,5 +1,6 @@
 #include "Linker.h"
 #include "Engine.h"
+#include "Camera.h"
 
 Engine::Engine()
 {
@@ -53,10 +54,10 @@ void Engine::CreateShaders()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
-	// we do not need anymore this COM object, so we release it.
-	pVS->Release();
 
 	gDevice->CreateVertexShader(pVS->GetBufferPointer(), pVS->GetBufferSize(), nullptr, &gVertexShader);
+	// we do not need anymore this COM object, so we release it.
+	pVS->Release();
 
 	//create pixel shader
 	ID3DBlob* pPS = nullptr;
