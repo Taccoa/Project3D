@@ -33,9 +33,9 @@ ID3D11RenderTargetView* gBackbufferRTV = nullptr;
 
 ID3D11DepthStencilView* gDepthview = nullptr;
 ID3D11Texture2D* gDepthStencilBuffer = nullptr;
-
-ID3D11ShaderResourceView* gTextureView = nullptr;
-ID3D11Texture2D *gTexture = NULL;
+//******************************************
+ID3D11ShaderResourceView* gTextureView[2];
+//******************************************
 ID3D11SamplerState* sampAni = nullptr;
 
 ID3D11Buffer* gVertexBuffer = nullptr;
@@ -94,19 +94,20 @@ void UpdateCamera();
 void StartTimer();
 double GetTime();
 double GetFrameTime();
-//----------------------------------------------------------------
+
 bool isShoot = false;
 
-int ClientWidth = 0;
-int ClientHeight = 0;
+int ClientWidth = 640;
+int ClientHeight = 480;
 
-int score = 0;
 float pickedDist = 0.0f;
+XMMATRIX worldSpace;
+
+float clearColor[] = { 0, 0, 0, 1 };
 
 void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos, XMVECTOR& pickRayInWorldSpaceDir);
-float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std::vector<XMFLOAT3>& vertPosArray, std::vector<DWORD>& indexPosArray, XMMATRIX& worldSpace);
 bool PointInTriangle(XMVECTOR& triV1, XMVECTOR& triV2, XMVECTOR& triV3, XMVECTOR& point);
-//----------------------------------------------------------------
+
 struct VS_CONSTANT_BUFFER
 {
 	Matrix worldViewProj;
@@ -160,6 +161,7 @@ void UpdateConstantBuffer()
 	dataPtr = (VS_CONSTANT_BUFFER*)mappedCB.pData;
 	dataPtr->worldViewProj = worldViewProjection;
 	dataPtr->world = world;
+	worldSpace = world;
 
 	gDeviceContext->Unmap(gConstantBuffer, 0);
 
@@ -184,23 +186,6 @@ void CreateDepthBuffer()
 	gDevice->CreateTexture2D(&desc, 0, &gDepthStencilBuffer);
 
 	gDevice->CreateDepthStencilView(gDepthStencilBuffer, 0, &gDepthview);
-}
-
-void CreateTexture()
-{
-	D3D11_TEXTURE2D_DESC descTexture;
-	gTexture->GetDesc(&descTexture);
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC descShaderView;
-
-	memset(&descShaderView, 0, sizeof(descShaderView));
-
-	descShaderView.Format = descTexture.Format;
-	descShaderView.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	descShaderView.Texture2D.MipLevels = descTexture.MipLevels;
-
-	gDevice->CreateShaderResourceView(gTexture, &descShaderView, &gTextureView);
-
 }
 
 void CreateShaders()
@@ -229,6 +214,10 @@ void CreateShaders()
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		/*{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
+		//**************************************************************************************************
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{ "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		//**************************************************************************************************
 	};
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
@@ -277,7 +266,14 @@ struct FBXData
 	float pos[3];
 	float nor[3];
 	float uv[2];
+	//******************************************
+	float tan[3];
+	float bit[3];
+	//******************************************
 };
+
+std::vector<FBXData> vertPosArray;
+float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std::vector<FBXData>& vertPosArray, XMMATRIX& worldSpace);
 
 struct MaterialBuffer
 {
@@ -291,6 +287,9 @@ struct MaterialBuffer
 	float reflection;
 
 	bool textureBool = false;
+	//******************************************
+	bool normalMapBool = false;
+	//******************************************
 	float padding[3];
 
 	Vector3 camPos;
@@ -313,7 +312,7 @@ void CreateMaterialBuffer()
 	desc.MiscFlags = 0;
 	desc.StructureByteStride = 0;
 
-	gDevice->CreateBuffer(&desc, NULL, &gMaterialBuffer);
+	HRESULT hr = gDevice->CreateBuffer(&desc, NULL, &gMaterialBuffer);
 }
 
 void InitiSdkObjects(FbxManager*& pManager, FbxScene*& pScene)
@@ -325,7 +324,6 @@ void InitiSdkObjects(FbxManager*& pManager, FbxScene*& pScene)
 		FBXSDK_printf("Error: Can't create FBX Manager!\n");
 		exit(1); //Exit the application.
 	}
-
 	else
 	{
 		FbxIOSettings* ios = FbxIOSettings::Create(pManager, IOSROOT); //Creates IO Settings object. Holds the settings for import/export settings.
@@ -692,16 +690,20 @@ void ImportTexture(FbxMesh* pMesh)
 					wchar_t* out;
 					FbxUTF8ToWC(filetextureName.Buffer(), out, NULL);
 
-					HRESULT hr = CreateWICTextureFromFile(gDevice, gDeviceContext, out, NULL, &gTextureView, 0);
+					HRESULT hr = CreateWICTextureFromFile(gDevice, gDeviceContext, out, NULL, &gTextureView[2], 0);
 
 					FbxFree(out);
 
 					test.textureBool = true;
+					test.normalMapBool = true;
 				}
 			}
 			else
 			{
 				test.textureBool = false;
+				//******************************************
+				test.normalMapBool = false;
+				//******************************************
 			}
 		}
 	}
@@ -747,7 +749,8 @@ void CreateTriangleData()
 
 	FbxMesh* aMesh = LoadScene(myManager, myScene);		//Import the scene and also return the mesh from the FBX file.
 
-	ImportVertices(aMesh, &aVector);	//Import vertices from FBX. 
+	ImportVertices(aMesh, &aVector);	//Import vertices from FBX.
+	vertPosArray = aVector;				//Gets the vertices to the mousepicking function
 
 	ImportNormals(aMesh, &aVector);		//Import normals from FBX. 
 
@@ -787,7 +790,7 @@ void SetViewport()
 void Render()
 {
 	// clear the back buffer to a deep blue
-	float clearColor[] = { 0, 0, 0, 1 };
+	//float clearColor[] = { 0, 0, 0, 1 };
 	gDeviceContext->ClearRenderTargetView(gBackbufferRTV, clearColor);
 
 	gDeviceContext->ClearDepthStencilView(gDepthview, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -797,7 +800,7 @@ void Render()
 	gDeviceContext->DSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->GSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
-	gDeviceContext->PSSetShaderResources(0, 1, &gTextureView);
+	gDeviceContext->PSSetShaderResources(0, 2, gTextureView);
 
 	UINT32 vertexSize = sizeof(FBXData);
 	UINT32 offset = 0;
@@ -817,6 +820,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 {
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance); //1. Skapa fönster
+	hwnd = wndHandle;
 
 	if (!InitDirectInput(hInstance)) //We call our function and controlls that it does load
 	{
@@ -1010,9 +1014,8 @@ bool InitDirectInput(HINSTANCE hInstance)
 	hr = DIKeyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
 
 	hr = DIMouse->SetDataFormat(&c_dfDIMouse);			//Lets us tell the device what kind of input we are expecting
-	//-------------------------------------------------
+
 	hr = DIMouse->SetCooperativeLevel(hwnd, DISCL_NONEXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
-	//-------------------------------------------------
 
 	return true;
 }
@@ -1078,7 +1081,7 @@ void DetectInput(double time)
 	{
 		moveBackForward -= speed;			//Moves the camera back
 	}
-	//----------------------------------------------------------------------------
+
 	if (mouseCurrState.rgbButtons[0])
 	{
 		if (isShoot == false)
@@ -1098,24 +1101,32 @@ void DetectInput(double time)
 			XMVECTOR prwsPos, prwsDir;
 			pickRayVector(mousex, mousey, prwsPos, prwsDir);
 
-			/*tempDist = pick(prwsPos, prwsDir, );*/
-			//if (tempDist < closestDist)
-			//{
-			//	closestDist = tempDist;
-			//	/*hitIndex = ;*/
-			//}
+			tempDist = pick(prwsPos, prwsDir, vertPosArray, worldSpace);
+			if (tempDist < closestDist)
+			{
+				closestDist = tempDist;
+				/*hitIndex = ;*/
+			}
 
 			if (closestDist < FLT_MAX)
 			{
 				pickedDist = closestDist;
-				score++;
+				if (clearColor[0] == 0)
+				{
+					clearColor[0] = 1;
+				}
+				else
+				{
+					clearColor[0] = 0;
+				}
+				
 			}
 			
 			isShoot = true;
 		}
 	}
 	if (!mouseCurrState.rgbButtons[0]) { isShoot = false;}
-	//----------------------------------------------------------------------------
+
 	if ((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY)) //We check where the mouse are now
 	{
 		camYaw += mouseLastState.lX * 0.001f;
@@ -1160,7 +1171,7 @@ double GetFrameTime()
 
 	return float(tickCount) / countsPerSecond;
 }
-//----------------------------------------------------------------------
+
 void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos, XMVECTOR& pickRayInWorldSpaceDir)
 {
 	XMVECTOR pickRayInViewSpaceDir = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1174,36 +1185,38 @@ void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos,
 	//Transform 2D pick position on screen space to 3D ray in View space
 	PRVecX = ((( 2.0f * mouseX) / ClientWidth) - 1) / proj._11;
 	PRVecY = -(((2.0f * mouseY) / ClientHeight) - 1) / proj._22;
-	PRVecZ = 1.0f;
+	PRVecZ = 1.0f;			//View space's Z direction ranges from 0 to 1, so we set it to 1 since the ray goes into the screen
 
 	pickRayInViewSpaceDir = XMVectorSet(PRVecX, PRVecY, PRVecZ, 0.0f);
 
+	//Tansforms 3D Ray in View Space to 3D Ray in World Space
 	XMMATRIX pickRayToWorldSpaceMatrix;
-	XMVECTOR matInvDeter;
+	XMVECTOR matInvDeter = {1, 1, 1, 1};
 
-	pickRayToWorldSpaceMatrix = XMMatrixInverse(&matInvDeter, camView);
+	pickRayToWorldSpaceMatrix = XMMatrixInverse(&matInvDeter, camView);		//Inverse of View Space Matrix is the World Space Matrix
 
 	pickRayInWorldSpacePos = XMVector3TransformCoord(pickRayInViewSpacePos, pickRayToWorldSpaceMatrix);
 	pickRayInWorldSpaceDir = XMVector3TransformNormal(pickRayInViewSpaceDir, pickRayToWorldSpaceMatrix);
+	pickRayInWorldSpaceDir = XMVector3Normalize(pickRayInWorldSpaceDir);
 }
 
-float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std::vector<XMFLOAT3>& vertPosArray, std::vector<DWORD>& indexPosArray, XMMATRIX& worldSpace)
+float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std::vector<FBXData>& vertPosArray, XMMATRIX& worldSpace)
 {
-	for (int i = 0; i < indexPosArray.size() / 3; i++)
+	for (int i = 0; i < vertPosArray.size() / 3; i++)
 	{
 		XMVECTOR tri1V1 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 		XMVECTOR tri1V2 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 		XMVECTOR tri1V3 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 
-		XMFLOAT3 tV1, tV2, tV3;
+		FBXData tV1, tV2, tV3;
 
-		tV1 = vertPosArray[indexPosArray[(i * 3) + 0]];
-		tV2 = vertPosArray[indexPosArray[(i * 3) + 1]];
-		tV3 = vertPosArray[indexPosArray[(i * 3) + 2]];
+		tV1 = vertPosArray[(i * 3) + 0];
+		tV2 = vertPosArray[(i * 3) + 1];
+		tV3 = vertPosArray[(i * 3) + 2];
 
-		tri1V1 = XMVectorSet(tV1.x, tV1.y, tV1.z, 0.0f);
-		tri1V2 = XMVectorSet(tV2.x, tV2.y, tV2.z, 0.0f);
-		tri1V3 = XMVectorSet(tV3.x, tV3.y, tV3.z, 0.0f);
+		tri1V1 = XMVectorSet(tV1.pos[0], tV1.pos[1], tV1.pos[2], 0.0f);
+		tri1V2 = XMVectorSet(tV2.pos[0], tV2.pos[1], tV2.pos[2], 0.0f);
+		tri1V3 = XMVectorSet(tV3.pos[0], tV3.pos[1], tV3.pos[2], 0.0f);
 
 		tri1V1 = XMVector3TransformCoord(tri1V1, worldSpace);
 		tri1V2 = XMVector3TransformCoord(tri1V2, worldSpace);
@@ -1226,8 +1239,8 @@ float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std
 		float tri1C = XMVectorGetZ(faceNormal);
 		float tri1D = (-tri1A*XMVectorGetX(triPoint) - tri1B*XMVectorGetY(triPoint) - tri1C* XMVectorGetZ(triPoint));
 
-		float ep1, ep2, t = 0.0f;
-		float planeIntersectX, planeIntersectY, planeIntersectZ = 0.0f;
+		float ep1 = 0.0f, ep2 = 0.0f, t = 0.0f;
+		float planeIntersectX = 0.0f, planeIntersectY = 0.0f, planeIntersectZ = 0.0f;
 		XMVECTOR pointInPlane = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 
 		ep1 = (XMVectorGetX(pickRayInWorldSpacePos) * tri1A) + (XMVectorGetY(pickRayInWorldSpacePos) * tri1B) + (XMVectorGetZ(pickRayInWorldSpacePos) * tri1C);
@@ -1278,4 +1291,3 @@ bool PointInTriangle(XMVECTOR& triV1, XMVECTOR& triV2, XMVECTOR& triV3, XMVECTOR
 	else
 		return false;
 }
-//----------------------------------------------------------------------

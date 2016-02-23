@@ -4,6 +4,10 @@ struct VS_IN
 	float3 Nor : NORMAL;
 	float2 Tex : TEXCOORD;
 	/*float3 Col : COLOR;*/
+	//****************************************
+	float3 Tangent : TANGENT;
+	float3 BiTangent : BITANGENT;
+	//****************************************
 };
 
 struct VS_OUT
@@ -13,6 +17,10 @@ struct VS_OUT
 	float2 Tex : TEXCOORD;
 	float4 WPos : POSITION;
 	/*float3 Col : COLOR;*/
+	//****************************************
+	float3 Tangent : TANGENT;
+	float3 BiTangent : BITANGENT;
+	//****************************************
 };
 
 //-----------------------------------------------------------------------------------------
@@ -37,7 +45,13 @@ VS_OUT VS_main(VS_IN input)
 	output.Nor = mul(input.Nor, world);
 
 	output.Tex = input.Tex;
+	//*************************************************************************
+	output.Tangent = mul(input.Nor, (float3x3)world);
+	output.Tangent = normalize(output.Tangent);
 
+	output.BiTangent = mul(input.Nor, (float3x3)world);
+	output.BiTangent = normalize(output.BiTangent);
+	//*************************************************************************
 	return output;
 }
 
