@@ -12,7 +12,7 @@ Frustum::~Frustum()
 
 void Frustum::ConstructFrustum(float screenDepth, Matrix projMatrix, Matrix viewMatrix)
 {
-	float zMin, r;
+	/*float zMin, r;
 	Matrix matrix;
 
 	zMin = projMatrix._43 / projMatrix._33;
@@ -61,7 +61,7 @@ void Frustum::ConstructFrustum(float screenDepth, Matrix projMatrix, Matrix view
 	planes[5].y = matrix._24 + matrix._22;
 	planes[5].z = matrix._34 + matrix._32;
 	planes[5].w = matrix._44 + matrix._42;
-	XMPlaneNormalize(XMLoadFloat4(&planes[5]));
+	XMPlaneNormalize(XMLoadFloat4(&planes[5]));*/
 
 	return;
 }
@@ -70,7 +70,7 @@ void Frustum::ConstructFrustum(float screenDepth, Matrix projMatrix, Matrix view
 //if true the point is inside all six of the planes
 bool Frustum::CheckPoint(float x, float y, float z)
 {
-	XMFLOAT3 coords[3];
+	/*XMFLOAT3 coords[3];
 	
 	for (int i = 0; i < 6; i++)
 	{
@@ -78,7 +78,7 @@ bool Frustum::CheckPoint(float x, float y, float z)
 		{
 			return false;
 		}
-	}
+	}*/
 	return true;
 }
 
