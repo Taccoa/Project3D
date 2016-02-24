@@ -214,7 +214,6 @@ void Engine::UpdateConstantBuffer()
 	VS_CONSTANT_BUFFER* dataPtr;
 
 	Matrix world;
-	Matrix projection;
 	Matrix camView;
 	Matrix worldViewProjection;
 
@@ -223,7 +222,7 @@ void Engine::UpdateConstantBuffer()
 
 	worldViewProjection = world * cameraPtr->camView * projection;
 	worldViewProjection = worldViewProjection.Transpose();
-
+	
 	world = world.Transpose();
 
 	result = gDeviceContext->Map(gConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedCB);

@@ -35,6 +35,7 @@ public:
 	};
 
 	Camera* cameraPtr;
+	Matrix projection;
 
 	//This have to be in public, because it requires direct access in the System Class function "Run".
 	IDXGISwapChain* gSwapChain = nullptr; 

@@ -38,8 +38,10 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 	cameraPtr->fbxPtr = fbxPtr;
 
 	terrainPtr->enginePtr = enginePtr;
-
 	terrainPtr->cameraPtr = cameraPtr;
+
+	frustumPtr->cameraPtr = cameraPtr;
+	frustumPtr->enginePtr = enginePtr;
 
 	if (wndHandle)
 	{
@@ -59,7 +61,7 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 		//--------------------------------------
 		terrainPtr->CreateTerrainMatrixBuffer();
 		terrainPtr->createTerrainMaterialBuffer();
-		frustumPtr->getFrustumPlanes();
+		
 		//--------------------------------------
 
 		ShowWindow(wndHandle, nCmdShow);
@@ -83,6 +85,7 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 				terrainPtr->updateTerrainMaterialBuffer();
 				terrainPtr->RenderTerrain();
 
+				frustumPtr->getFrustumPlanes();
 				cameraPtr->initCamera();
 				enginePtr->gSwapChain->Present(1, 0);
 			}
