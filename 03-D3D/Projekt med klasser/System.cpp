@@ -4,6 +4,7 @@
 #include "Terrain.h"
 #include "Engine.h"
 #include "System.h"
+#include "Frustum.h"
 
 System::System()
 {
@@ -22,6 +23,8 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 	fbxPtr = new FBX;
 	cameraPtr = new Camera;
 	terrainPtr = new Terrain;
+	frustumPtr = new Frustum;
+
 
 	if (!cameraPtr->InitDirectInput(wHandle)) //We call our function and controlls that it does load
 	{
@@ -37,7 +40,6 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 	terrainPtr->enginePtr = enginePtr;
 
 	terrainPtr->cameraPtr = cameraPtr;
-
 
 	if (wndHandle)
 	{
@@ -57,6 +59,7 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 		//--------------------------------------
 		terrainPtr->CreateTerrainMatrixBuffer();
 		terrainPtr->createTerrainMaterialBuffer();
+		frustumPtr->getFrustumPlanes();
 		//--------------------------------------
 
 		ShowWindow(wndHandle, nCmdShow);
@@ -115,6 +118,11 @@ void System::ShutDown()
 	{
 		delete terrainPtr;
 		terrainPtr = 0;
+	}
+	if (frustumPtr)
+	{
+		delete frustumPtr;
+		frustumPtr = 0;
 	}
 
 	return;

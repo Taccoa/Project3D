@@ -120,6 +120,8 @@ void Engine::Render()
 	gDeviceContext->DSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->GSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
+
+
 }
 
 HRESULT Engine::CreateDirect3DContext(HWND wndHandle)

@@ -9,13 +9,18 @@ public:
 	Frustum();
 	~Frustum();
 
-	void ConstructFrustum(float, Matrix, Matrix);
-	bool CheckPoint(float, float, float);
-	bool CheckCube(float, float, float, float);
+	//void ConstructFrustum(float screenDepth, Matrix projMatrix,	Matrix viewMatrix);
+	/*bool CheckPoint(float, float, float);
+	/*bool CheckCube(float, float, float, float);*/
+
+	std::vector<XMFLOAT4> getFrustumPlanes();
+
+	struct FrustumMartix
+	{
+		Matrix viewProj;
+	};
 
 private:
-
-	XMFLOAT4 planes[6];
 
 };
 

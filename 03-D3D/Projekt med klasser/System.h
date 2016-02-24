@@ -6,6 +6,7 @@ class Engine;
 class FBX;
 class Camera;
 class Terrain;
+class Frustum;
 
 class System
 {
@@ -25,6 +26,7 @@ public:
 	FBX* fbxPtr;
 	Camera* cameraPtr;
 	Terrain* terrainPtr;
+	Frustum* frustumPtr;
 
 };
 
