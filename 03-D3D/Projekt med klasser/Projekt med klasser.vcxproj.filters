@@ -48,6 +48,9 @@
     <ClCompile Include="Frustum.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="Primitives.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine.h">
@@ -81,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Frustum.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Primitives.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

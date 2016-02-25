@@ -296,7 +296,7 @@ void Terrain::updateTerrainMaterialBuffer()
 {
 	D3D11_MAPPED_SUBRESOURCE tSubr;
 
-	enginePtr->gDeviceContext->Map(terrainMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &tSubr);
+	HRESULT hr= enginePtr->gDeviceContext->Map(terrainMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &tSubr);
 
 	memcpy(tSubr.pData, &material, sizeof(FBX::MaterialBuffer));
 

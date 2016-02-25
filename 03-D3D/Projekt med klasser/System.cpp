@@ -5,6 +5,7 @@
 #include "Engine.h"
 #include "System.h"
 #include "Frustum.h"
+#include "Primitives.h"
 
 System::System()
 {
@@ -24,6 +25,7 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 	cameraPtr = new Camera;
 	terrainPtr = new Terrain;
 	frustumPtr = new Frustum;
+	primitivePtr = new Primitives;
 
 
 	if (!cameraPtr->InitDirectInput(wHandle)) //We call our function and controlls that it does load
@@ -36,12 +38,17 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 	enginePtr->cameraPtr = cameraPtr;
 
 	cameraPtr->fbxPtr = fbxPtr;
+	cameraPtr->terrainPtr = terrainPtr;
 
 	terrainPtr->enginePtr = enginePtr;
 	terrainPtr->cameraPtr = cameraPtr;
 
 	frustumPtr->cameraPtr = cameraPtr;
 	frustumPtr->enginePtr = enginePtr;
+	
+	primitivePtr->enginePtr = enginePtr;
+	primitivePtr->cameraPtr = cameraPtr;
+	primitivePtr->terrainPtr = terrainPtr;
 
 	if (wndHandle)
 	{
@@ -55,7 +62,6 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 		fbxPtr->InitializeModels();
 
 		terrainPtr->InitScene();
-
 		terrainPtr->CreateHeightTexture();
 
 		//--------------------------------------
@@ -63,6 +69,9 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 		terrainPtr->createTerrainMaterialBuffer();
 		
 		//--------------------------------------
+
+		primitivePtr->CreatePrimitiveMatrixBuffer();
+		primitivePtr->CreatePrimitives();
 
 		ShowWindow(wndHandle, nCmdShow);
 
@@ -86,6 +95,10 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 				terrainPtr->RenderTerrain();
 
 				frustumPtr->getFrustumPlanes();
+
+				primitivePtr->UpdatePMatrixBuffer();
+				primitivePtr->RenderPrimitives();
+
 				cameraPtr->initCamera();
 				enginePtr->gSwapChain->Present(1, 0);
 			}
@@ -122,10 +135,17 @@ void System::ShutDown()
 		delete terrainPtr;
 		terrainPtr = 0;
 	}
+
 	if (frustumPtr)
 	{
 		delete frustumPtr;
 		frustumPtr = 0;
+	}
+
+	if (primitivePtr)
+	{
+		delete primitivePtr;
+		primitivePtr = 0;
 	}
 
 	return;

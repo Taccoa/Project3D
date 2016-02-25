@@ -3,7 +3,7 @@
 
 #include "Linker.h"
 class FBX;
-//class Terrain;
+class Terrain;
 
 class Camera
 {
@@ -61,7 +61,7 @@ public:
 	void initCamera();
 
 	FBX* fbxPtr;
-	//Terrain* terrainPtr;
+	Terrain* terrainPtr;
 };
 
 #endif CAMERA_H

@@ -7,6 +7,7 @@ class FBX;
 class Camera;
 class Terrain;
 class Frustum;
+class Primitives;
 
 class System
 {
@@ -27,7 +28,7 @@ public:
 	Camera* cameraPtr;
 	Terrain* terrainPtr;
 	Frustum* frustumPtr;
-
+	Primitives* primitivePtr;
 };
 
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);

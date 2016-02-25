@@ -17,7 +17,6 @@ public:
 	Camera* cameraPtr;
 	Engine* enginePtr;
 
-
 	std::vector<XMFLOAT4> getFrustumPlanes();
 
 private:
