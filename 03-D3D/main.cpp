@@ -107,6 +107,11 @@ float clearColor[] = { 0, 0, 0, 1 };
 
 void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos, XMVECTOR& pickRayInWorldSpaceDir);
 bool PointInTriangle(XMVECTOR& triV1, XMVECTOR& triV2, XMVECTOR& triV3, XMVECTOR& point);
+//******************************************
+std::vector<XMFLOAT3> tempTangent;
+XMFLOAT3 tangent = XMFLOAT3(0.0f, 0.0f, 0.0f);
+float tcU1, tcV1, tcU2, tcV2;
+//******************************************
 
 struct VS_CONSTANT_BUFFER
 {
@@ -140,7 +145,7 @@ void UpdateConstantBuffer()
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-	//rotation += 0.1f;
+	rotation += 0.1f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
 
@@ -202,7 +207,6 @@ void CreateShaders()
 		0,				// effect compile options
 		&pVS,			// double pointer to ID3DBlob		
 		nullptr			// pointer for Error Blob messages.
-						// how to use the Error blob, see here
 		);
 
 	gDevice->CreateVertexShader(pVS->GetBufferPointer(), pVS->GetBufferSize(), nullptr, &gVertexShader);
@@ -235,8 +239,6 @@ void CreateShaders()
 		0,				// effect compile options
 		&pPS,			// double pointer to ID3DBlob		
 		nullptr			// pointer for Error Blob messages.
-						// how to use the Error blob, see here
-						// https://msdn.microsoft.com/en-us/library/windows/desktop/hh968107(v=vs.85).aspx
 		);
 
 	gDevice->CreatePixelShader(pPS->GetBufferPointer(), pPS->GetBufferSize(), nullptr, &gPixelShader);
@@ -639,7 +641,7 @@ void ImportMaterial(FbxMesh* pMesh)
 	}
 }
 
-void ImportTexture(FbxMesh* pMesh)
+void ImportTexture(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 {
 	FbxProperty prop;
 
@@ -695,7 +697,36 @@ void ImportTexture(FbxMesh* pMesh)
 					FbxFree(out);
 
 					test.textureBool = true;
+					//******************************************
 					test.normalMapBool = true;
+
+					for (int i = 0; i < vertPosArray.size() / 3; i++)
+					{
+						tcU1 = vertPosArray[(i * 3) + 0].uv[0] - vertPosArray[(i * 3) + 2].uv[0];
+						tcV1 = vertPosArray[(i * 3) + 0].uv[1] - vertPosArray[(i * 3) + 2].uv[1];
+
+						tcU2 = vertPosArray[(i * 3) + 2].uv[0] - vertPosArray[(i * 3) + 1].uv[0];
+						tcV2 = vertPosArray[(i * 3) + 2].uv[1] - vertPosArray[(i * 3) + 1].uv[1];
+
+						tangent.x = (tcV1 - tcV2) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+						tangent.y = (tcV1 - tcV2) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+						tangent.z = (tcV1 - tcV2) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+
+						tempTangent.push_back(tangent);
+					}
+					XMVECTOR tangentSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+					for (int i = 0; i < vertPosArray.size() / 3; i++)
+					{
+						tangentSum = XMVectorSet(tempTangent[i].x, tempTangent[i].y, tempTangent[i].z, 0.0f);
+						tangentSum = XMVector3Normalize(tangentSum);
+
+						outVertexVector->at((i * 3)).tan[0] = XMVectorGetX(tangentSum);
+						outVertexVector->at((i * 3)).tan[1] = XMVectorGetY(tangentSum);
+						outVertexVector->at((i * 3)).tan[2] = XMVectorGetZ(tangentSum);
+
+						tangentSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+					}
+					//******************************************
 				}
 			}
 			else
@@ -757,9 +788,9 @@ void CreateTriangleData()
 	ImportUV(aMesh, &aVector);			//Import UV:s from FBX.
 
 	ImportMaterial(aMesh);
-
-	ImportTexture(aMesh);
-
+	//******************************************
+	ImportTexture(aMesh, &aVector);
+	//******************************************
 	UpdateMaterialBuffer();
 
 	D3D11_BUFFER_DESC bufferDesc;

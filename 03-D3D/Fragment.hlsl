@@ -15,7 +15,7 @@ struct GS_OUT
 	float4 WPos : POSITION;
 	//****************************************
 	float3 Tangent : TANGENT;
-	float3 BiTangent : BITANGENT;
+	//float3 BiTangent : BITANGENT;
 	//****************************************
 };
 
@@ -79,7 +79,9 @@ float4 PS_main(GS_OUT input) : SV_Target
 		norMap = shaderTexture[1].Sample(sampAni, input.Tex);
 		norMap = (2.0f * norMap) - 1.0f;
 
-		norMapNormal = (norMap.x * input.Tangent) + (norMap.y * input.BiTangent) + (norMap.z * input.Nor);
+		float3 biTangent = cross(input.Nor, input.Tangent);
+
+		norMapNormal = (norMap.x * input.Tangent) + (norMap.y * biTangent) + (norMap.z * input.Nor);
 		norMapNormal = normalize(norMapNormal);
 
 		lightI = saturate(dot(norMapNormal, (-s)));
