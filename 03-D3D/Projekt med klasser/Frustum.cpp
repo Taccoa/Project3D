@@ -70,15 +70,19 @@ void Frustum::getFrustumPlanes()
 	return;
 }
 
-bool Frustum::CheckCube(float xCenter, float yCenter, float zCenter, float radius)
+bool Frustum::CheckCube(XMFLOAT4 coords)
 {
+	//float coords1 = ((coords.x - coords.w), (coords.y - coords.w), (coords.z - coords.w));
+	//XMVECTOR v1 = XMLoadFloat4(&coords1);
+
 	for (int i = 0; i < 6; i++)
 	{
-		if (XMPlaneDotCoord(&frustumPlanes[i], XMLoadFloat((xCenter + radius), (yCenter - radius), (zCenter - radius))) >= 0.0f;
+		if (XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMLoadFloat4((coords.x - coords.w), (coords.y - coords.w), (coords.z - coords.w))) >= 0.0f);
 		{
 			continue;
 		}
 	}
 
-	return false;
+
+	return true;
 }

@@ -20,7 +20,7 @@ public:
 	XMFLOAT4 frustumPlanes[6];
 
 	void getFrustumPlanes();
-	bool CheckCube(float, float, float, float);
+	bool CheckCube(XMFLOAT4 coords);
 
 private:
 
