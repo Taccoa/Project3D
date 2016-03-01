@@ -68,10 +68,10 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 		terrainPtr->CreateTerrainMatrixBuffer();
 		terrainPtr->createTerrainMaterialBuffer();
 		
-		//--------------------------------------
-
 		primitivePtr->CreatePrimitiveMatrixBuffer();
 		primitivePtr->CreatePrimitives();
+		primitivePtr->createTextures();
+		//--------------------------------------
 
 		ShowWindow(wndHandle, nCmdShow);
 
@@ -96,7 +96,6 @@ int WINAPI System::Run(HINSTANCE wHandle, int nCmdShow)
 
 				frustumPtr->getFrustumPlanes();
 
-				primitivePtr->UpdatePMatrixBuffer();
 				primitivePtr->RenderPrimitives();
 
 				cameraPtr->initCamera();

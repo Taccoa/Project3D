@@ -7,6 +7,13 @@
 class Engine;
 class Camera;
 
+struct TerrainData
+{
+	float pos[3];
+	float nor[3];
+	float uv[2];
+};
+
 class Terrain
 {
 
@@ -44,9 +51,9 @@ public:
 	ID3D11Buffer* terrainMatrixBuffer = nullptr;
 	ID3D11Buffer* terrainMaterialBuffer = nullptr;
 	ID3D11Buffer* hVertexBuffer = nullptr;
-	ID3D11ShaderResourceView* hTextureView;
+	ID3D11ShaderResourceView* hTextureView = nullptr;
 	ID3D11Texture2D *hTexture = NULL;
-	ID3D11Buffer* gIndexBuffer = nullptr;
+	ID3D11Buffer* hIndexBuffer = nullptr;
 
 	void CreateHeightTexture();
 

@@ -13,11 +13,13 @@ Primitives::~Primitives()
 {
 	primitiveMatrixBuffer->Release();
 	pVertexBuffer->Release();
+	pTextureView->Release();
 }
+
 
 bool Primitives::CreatePrimitives()
 {
-	FBXData vertices[] =
+	TerrainData vertices[] =
 	{
 		{
 			{ 0.0, 0.5, 0.0 },
@@ -39,7 +41,7 @@ bool Primitives::CreatePrimitives()
 	D3D11_BUFFER_DESC VertexBufferDesc;
 	memset(&VertexBufferDesc, 0, sizeof(VertexBufferDesc));
 	VertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	VertexBufferDesc.ByteWidth = sizeof(FBXData) * 3;
+	VertexBufferDesc.ByteWidth = sizeof(TerrainData) * 3;
 	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
 	D3D11_SUBRESOURCE_DATA VertexBufferData;
@@ -64,33 +66,35 @@ void Primitives::CreatePrimitiveMatrixBuffer()
 	enginePtr->gDevice->CreateBuffer(&desc, NULL, &primitiveMatrixBuffer);
 }
 
-void Primitives::UpdatePMatrixBuffer()
+void Primitives::createTextures()
 {
+	HRESULT hr = CreateWICTextureFromFile(enginePtr->gDevice, enginePtr->gDeviceContext, L"pink.jpg", nullptr, &pTextureView, 0);
+	if (FAILED(hr))
+	{
+		//error
+	}
+}
+
+void Primitives::RenderPrimitives()
+{
+	UINT32 offset = 0;
+	UINT32 vertexPrimitiveSize = sizeof(TerrainData);
+	
 	HRESULT result;
 	D3D11_MAPPED_SUBRESOURCE mappedCB;
 	PrimitiveBuffer* dataPtr;
 
-	//Matrix world[5];
+	Matrix world[numberOfPrimitives];
 	Matrix projection;
 	Matrix worldViewProjection;
-
-
-	Matrix * world;
-	world = new Matrix[5];
-	
-	/*world[0] = XMMatrixTranslation(0.0, 0.0, 0.0);
-	world[1] = XMMatrixTranslation(0.5, 0.0, 0.0);
-	world[2] = XMMatrixTranslation(1.0, 0.0, 0.0);
-	world[3] = XMMatrixTranslation(-0.5, 0.0, 0.0);
-	world[4] = XMMatrixTranslation(-1.0, 0.0, 0.0);
-	world[5] = XMMatrixTranslation(1.5, 0.0, 0.0);*/
+	float x = 0.5;
 
 	projection = XMMatrixPerspectiveFovLH(float(3.1415 * 0.45), float(1280.0 / 960.0), float(0.5), float(20));
 
-	float x = 0.5;
-	for (int i = 0; i < 6; i++)
-	{
+	enginePtr->gDeviceContext->VSSetConstantBuffers(0, 1, &primitiveMatrixBuffer);
 
+	for (int i = 0; i < numberOfPrimitives; i++)
+	{
 		world[i] = XMMatrixTranslation(x, 0.0, 0.0);
 		x++;
 		worldViewProjection = world[i] * cameraPtr->camView * projection;
@@ -107,24 +111,9 @@ void Primitives::UpdatePMatrixBuffer()
 		dataPtr = (PrimitiveBuffer*)mappedCB.pData;
 		dataPtr->primitiveWVP = worldViewProjection;
 		dataPtr->primitiveWorld = world[i];
-	}
-	enginePtr->gDeviceContext->Unmap(primitiveMatrixBuffer, 0);
 
-	enginePtr->gDeviceContext->VSSetConstantBuffers(0, 1, &primitiveMatrixBuffer);
-
-}
-
-void Primitives::RenderPrimitives()
-{
-	UINT32 offset = 0;
-	UINT32 vertexPrimitiveSize = sizeof(FBXData);
-	
-	//enginePtr->gDeviceContext->IASetIndexBuffer(gIndexBuffer, DXGI_FORMAT_R32_UINT, offset);
-	//enginePtr->gDeviceContext->DrawIndexed(numFaces * 3, 0, 0);
-
-	for (int j = 0; j < 6; j++)
-	{
-		enginePtr->gDeviceContext->PSSetShaderResources(0, 1, &terrainPtr->hTextureView);
+		enginePtr->gDeviceContext->Unmap(primitiveMatrixBuffer, 0);
+		enginePtr->gDeviceContext->PSSetShaderResources(0, 1, &pTextureView);
 		enginePtr->gDeviceContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &vertexPrimitiveSize, &offset);
 		enginePtr->gDeviceContext->Draw(3, 0);
 		

@@ -16,7 +16,7 @@ Terrain::~Terrain()
 	hVertexBuffer->Release();
 	hTextureView->Release();
 	hTexture->Release();
-	gIndexBuffer->Release();
+	hIndexBuffer->Release();
 	//----------------------------
 	terrainMatrixBuffer->Release();
 	terrainMaterialBuffer->Release();
@@ -118,7 +118,7 @@ bool Terrain::InitScene()
 	numFaces = (rows - 1) * (cols - 1) * 2; //mult with 2 to get the nr of triangles 
 											//since it's two triangles in each quad
 											//vector to hold all the vertices
-	std::vector<FBXData> v(numVertices);
+	std::vector<TerrainData> v(numVertices);
 
 	//loop throgh each col and row of the grid
 	for (DWORD i = 0; i < rows; i++)
@@ -162,7 +162,7 @@ bool Terrain::InitScene()
 	D3D11_BUFFER_DESC VertexBufferDesc;
 	memset(&VertexBufferDesc, 0, sizeof(VertexBufferDesc));
 	VertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	VertexBufferDesc.ByteWidth = sizeof(FBXData) * numVertices;
+	VertexBufferDesc.ByteWidth = sizeof(TerrainData) * numVertices;
 	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
 	D3D11_SUBRESOURCE_DATA VertexBufferData;
@@ -181,7 +181,7 @@ bool Terrain::InitScene()
 	memset(&IndexBufferData, 0, sizeof(IndexBufferData));
 	IndexBufferData.pSysMem = &indices[0];
 
-	enginePtr->gDevice->CreateBuffer(&IndexBufferDesc, &IndexBufferData, &gIndexBuffer);
+	enginePtr->gDevice->CreateBuffer(&IndexBufferDesc, &IndexBufferData, &hIndexBuffer);
 
 	return true;
 }
@@ -223,9 +223,9 @@ void Terrain::RenderTerrain()
 
 	UINT32 offset = 0;
 
-	UINT32 vertexTerrainSize = sizeof(FBXData);
+	UINT32 vertexTerrainSize = sizeof(TerrainData);
 	enginePtr->gDeviceContext->IASetVertexBuffers(0, 1, &hVertexBuffer, &vertexTerrainSize, &offset);
-	enginePtr->gDeviceContext->IASetIndexBuffer(gIndexBuffer, DXGI_FORMAT_R32_UINT, offset);
+	enginePtr->gDeviceContext->IASetIndexBuffer(hIndexBuffer, DXGI_FORMAT_R32_UINT, offset);
 	enginePtr->gDeviceContext->DrawIndexed(numFaces * 3, 0, 0);
 }
 

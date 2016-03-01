@@ -4,13 +4,6 @@
 #include "Linker.h"
 class System;
 
-struct FBXData
-{
-	float pos[3];
-	float nor[3];
-	float uv[2];
-};
-
 class FBX
 {
 
@@ -24,6 +17,13 @@ public:
 
 	FBX();
 	~FBX();
+
+	struct FBXData
+	{
+		float pos[3];
+		float nor[3];
+		float uv[2];
+	};
 
 	struct MaterialBuffer
 	{

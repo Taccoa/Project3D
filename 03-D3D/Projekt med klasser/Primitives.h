@@ -15,8 +15,9 @@ public:
 	Primitives();
 	~Primitives();
 
-	ID3D11Buffer* primitiveMatrixBuffer;
+	ID3D11Buffer* primitiveMatrixBuffer = nullptr;
 	ID3D11Buffer* pVertexBuffer = nullptr;
+	ID3D11ShaderResourceView* pTextureView = nullptr;
 	Engine* enginePtr;
 	Camera* cameraPtr;
 	Terrain* terrainPtr;
@@ -24,7 +25,8 @@ public:
 	bool CreatePrimitives();
 	void RenderPrimitives();
 	void CreatePrimitiveMatrixBuffer();
-	void UpdatePMatrixBuffer();
+	void createTextures();
+	static const int numberOfPrimitives = 6;
 
 	struct PrimitiveBuffer
 	{

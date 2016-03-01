@@ -20,6 +20,9 @@ Engine::~Engine()
 	gVertexShader->Release();
 	gConstantBuffer->Release();
 	gPixelShader->Release();
+
+	pVertexLayout->Release();
+	pVertexShader->Release();
 }
 
 ID3D11Device* Engine::GetDevice()
@@ -58,6 +61,30 @@ void Engine::CreateShaders()
 	gDevice->CreateVertexShader(pVS->GetBufferPointer(), pVS->GetBufferSize(), nullptr, &gVertexShader);
 	// we do not need anymore this COM object, so we release it.
 	pVS->Release();
+
+	//create vertex shader 2
+	ID3DBlob* pVS_2 = nullptr;
+	D3DCompileFromFile(
+		L"VertexShader_2.hlsl", // filename
+		nullptr,		// optional macros
+		nullptr,		// optional include files
+		"VS_main",		// entry point
+		"vs_4_0",		// shader model (target)
+		0,				// shader compile options
+		0,				// effect compile options
+		&pVS_2,			// double pointer to ID3DBlob		
+		nullptr			// pointer for Error Blob messages.			
+		);
+
+	D3D11_INPUT_ELEMENT_DESC inputDescPrimitives[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	gDevice->CreateInputLayout(inputDescPrimitives, ARRAYSIZE(inputDescPrimitives), pVS_2->GetBufferPointer(), pVS_2->GetBufferSize(), &pVertexLayout);
+
+	gDevice->CreateVertexShader(pVS_2->GetBufferPointer(), pVS_2->GetBufferSize(), nullptr, &pVertexShader);
+	pVS_2->Release();
 
 	//create pixel shader
 	ID3DBlob* pPS = nullptr;
@@ -110,7 +137,7 @@ void Engine::SetViewPort()
 
 void Engine::Render()
 {
-	float clearColor[] = { 0, 0, 0, 1 };
+	float clearColor[] = { 0, 0.5, 0, 1 };
 	
 	gDeviceContext->ClearRenderTargetView(gBackbufferRTV, clearColor);
 	gDeviceContext->ClearDepthStencilView(gDepthview, D3D11_CLEAR_DEPTH, 1.0f, 0);

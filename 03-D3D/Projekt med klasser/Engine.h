@@ -54,6 +54,9 @@ public:
 	ID3D11VertexShader* gVertexShader = nullptr;
 	ID3D11PixelShader* gPixelShader = nullptr;
 
+	ID3D11InputLayout* pVertexLayout = nullptr;
+	ID3D11VertexShader* pVertexShader = nullptr;
+
 	//ID3D11GeometryShader* gGeometryShader = nullptr;
 };
 

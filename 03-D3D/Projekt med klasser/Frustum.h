@@ -12,12 +12,15 @@ public:
 	~Frustum();
 
 	//void ConstructFrustum(float screenDepth, Matrix projMatrix,	Matrix viewMatrix);
-	/*bool CheckPoint(float, float, float);
-	/*bool CheckCube(float, float, float, float);*/
+	/*bool CheckPoint(float, float, float);*/
+	
 	Camera* cameraPtr;
 	Engine* enginePtr;
 
-	std::vector<XMFLOAT4> getFrustumPlanes();
+	XMFLOAT4 frustumPlanes[6];
+
+	void getFrustumPlanes();
+	bool CheckCube(float, float, float, float);
 
 private:
 
