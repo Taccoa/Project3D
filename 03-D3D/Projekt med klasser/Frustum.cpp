@@ -20,15 +20,18 @@ void Frustum::getFrustumPlanes()
 	viewProj = cameraPtr->camView * enginePtr->projection;
 
 	//left frustum plane
+	
 	frustumPlanes[0].x = viewProj._14 + viewProj._11;
 	frustumPlanes[0].y = viewProj._24 + viewProj._21;
 	frustumPlanes[0].z = viewProj._34 + viewProj._31;
 	frustumPlanes[0].w = viewProj._44 + viewProj._41;
 
 	//right frustum plane
+	//creates a normalvector by substracting the position(center in the plane) with direction 
 	frustumPlanes[1].x = viewProj._14 - viewProj._11;
 	frustumPlanes[1].y = viewProj._24 - viewProj._21;
 	frustumPlanes[1].z = viewProj._34 - viewProj._31;
+	//last coordinate is the distance bewteen direction and position
 	frustumPlanes[1].w = viewProj._44 - viewProj._41;
 
 	//top frustum plane
@@ -55,7 +58,7 @@ void Frustum::getFrustumPlanes()
 	frustumPlanes[5].z = viewProj._34 - viewProj._33;
 	frustumPlanes[5].w = viewProj._44 - viewProj._43;
 
-	//normalize plane normals (A, B, C (xyz))
+	//normalize plane normals (A, B, C (xyz)) to get th right lenghts of the normalvectors
 	//Math: length^2 = A^2 + B^2 + C^2
 	//A = A/length, B = B/length, C = C/length, D = D/lenght
 	for (int i = 0; i < 6; i++)
@@ -70,19 +73,59 @@ void Frustum::getFrustumPlanes()
 	return;
 }
 
-bool Frustum::CheckCube(XMFLOAT4 coords)
+/*bool Frustum::CheckCube(XMFLOAT4 coords)
 {
-	//float coords1 = ((coords.x - coords.w), (coords.y - coords.w), (coords.z - coords.w));
-	//XMVECTOR v1 = XMLoadFloat4(&coords1);
 
+	//loop throght all the planes
 	for (int i = 0; i < 6; i++)
 	{
-		if (XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMLoadFloat4((coords.x - coords.w), (coords.y - coords.w), (coords.z - coords.w))) >= 0.0f);
+		//Dot between normals of the planes and a point - planeConstant, 
+		//and we get the signed distance(distance between the plane and the corner points of a cube)
+		//if signed distance is greater than or equal to 0, the cube is inside the view frustum 
+		//and it continues to the next plane, if its smaller than or equal to 0 the cube is outside
+		if (XMVectorGetX(XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMVectorSet((coords.x - coords.w), (coords.y - coords.w), (coords.z - coords.w), 1.0))) >= 0.0f);
 		{
 			continue;
 		}
+
+		if (XMVectorGetX(XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMVectorSet((coords.x + coords.w), (coords.y - coords.w), (coords.z - coords.w), 1.0))) >= 0.0f);
+		{
+			continue;
+		}
+
+		if (XMVectorGetX(XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMVectorSet((coords.x - coords.w), (coords.y + coords.w), (coords.z - coords.w), 1.0))) >= 0.0f);
+		{
+			continue;
+		}
+
+		if (XMVectorGetX(XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMVectorSet((coords.x + coords.w), (coords.y + coords.w), (coords.z - coords.w), 1.0))) >= 0.0f);
+		{
+			continue;
+		}
+
+		if (XMVectorGetX(XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMVectorSet((coords.x - coords.w), (coords.y - coords.w), (coords.z + coords.w), 1.0))) >= 0.0f);
+		{
+			continue;
+		}
+
+		if (XMVectorGetX(XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMVectorSet((coords.x + coords.w), (coords.y - coords.w), (coords.z + coords.w), 1.0))) >= 0.0f);
+		{
+			continue;
+		}
+
+		if (XMVectorGetX(XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMVectorSet((coords.x - coords.w), (coords.y + coords.w), (coords.z + coords.w), 1.0))) >= 0.0f);
+		{
+			continue;
+		}
+
+		if (XMVectorGetX(XMPlaneDotCoord(XMLoadFloat4(&frustumPlanes[i]), XMVectorSet((coords.x + coords.w), (coords.y + coords.w), (coords.z + coords.w), 1.0))) >= 0.0f);
+		{
+			continue;
+		}
+
+		return false;
 	}
 
 
 	return true;
-}
+}*/

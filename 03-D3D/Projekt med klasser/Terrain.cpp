@@ -219,14 +219,15 @@ void Terrain::CreateHeightTexture()
 
 void Terrain::RenderTerrain()
 {
+	
 	enginePtr->gDeviceContext->PSSetShaderResources(0, 1, &hTextureView);
 
 	UINT32 offset = 0;
-
 	UINT32 vertexTerrainSize = sizeof(TerrainData);
 	enginePtr->gDeviceContext->IASetVertexBuffers(0, 1, &hVertexBuffer, &vertexTerrainSize, &offset);
 	enginePtr->gDeviceContext->IASetIndexBuffer(hIndexBuffer, DXGI_FORMAT_R32_UINT, offset);
 	enginePtr->gDeviceContext->DrawIndexed(numFaces * 3, 0, 0);
+	
 }
 
 void Terrain::CreateTerrainMatrixBuffer()
