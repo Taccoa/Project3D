@@ -9,6 +9,9 @@
 #include "WICTextureLoader.h"
 #include <fbxsdk.h>
 #include <assert.h>
+//*************************************
+#include <math.h>
+//*************************************
 
 //http://www.braynzarsoft.net/viewtutorial/q16390-braynzar-soft-directx-11-tutorials
 //https://drive.google.com/drive/folders/0BypxoNw8MhW3QzU5ZnVwc2Q5Wms
@@ -34,7 +37,7 @@ ID3D11RenderTargetView* gBackbufferRTV = nullptr;
 ID3D11DepthStencilView* gDepthview = nullptr;
 ID3D11Texture2D* gDepthStencilBuffer = nullptr;
 //******************************************
-ID3D11ShaderResourceView* gTextureView[2];
+ID3D11ShaderResourceView* gTextureView[2]; //Makes it so that we can take in two texture
 //******************************************
 ID3D11SamplerState* sampAni = nullptr;
 
@@ -109,7 +112,9 @@ void pickRayVector(float mouseX, float mouseY, XMVECTOR& pickRayInWorldSpacePos,
 bool PointInTriangle(XMVECTOR& triV1, XMVECTOR& triV2, XMVECTOR& triV3, XMVECTOR& point);
 //******************************************
 std::vector<XMFLOAT3> tempTangent;
+std::vector<XMFLOAT3> tempBiTangent;
 XMFLOAT3 tangent = XMFLOAT3(0.0f, 0.0f, 0.0f);
+XMFLOAT3 bitangent = XMFLOAT3(0.0f, 0.0f, 0.0f);
 float tcU1, tcV1, tcU2, tcV2;
 //******************************************
 
@@ -145,7 +150,7 @@ void UpdateConstantBuffer()
 	Matrix worldViewProjection;
 
 	static float rotation = 0;
-	rotation += 0.1f;
+	rotation += 0.05f;
 
 	VS_CONSTANT_BUFFER vsCBuffer;
 
@@ -198,15 +203,15 @@ void CreateShaders()
 	//create vertex shader
 	ID3DBlob* pVS = nullptr;
 	D3DCompileFromFile(
-		L"Vertex.hlsl", // filename
-		nullptr,		// optional macros
-		nullptr,		// optional include files
-		"VS_main",		// entry point
-		"vs_4_0",		// shader model (target)
-		0,				// shader compile options
-		0,				// effect compile options
-		&pVS,			// double pointer to ID3DBlob		
-		nullptr			// pointer for Error Blob messages.
+		L"Vertex.hlsl",		// filename
+		nullptr,			// optional macros
+		nullptr,			// optional include files
+		"VS_main",			// entry point
+		"vs_4_0",			// shader model (target)
+		D3DCOMPILE_DEBUG,	// shader compile options
+		0,					// effect compile options
+		&pVS,				// double pointer to ID3DBlob		
+		nullptr				// pointer for Error Blob messages.
 		);
 
 	gDevice->CreateVertexShader(pVS->GetBufferPointer(), pVS->GetBufferSize(), nullptr, &gVertexShader);
@@ -230,15 +235,15 @@ void CreateShaders()
 	//create pixel shader
 	ID3DBlob* pPS = nullptr;
 	D3DCompileFromFile(
-		L"Fragment.hlsl", // filename
-		nullptr,		// optional macros
-		nullptr,		// optional include files
-		"PS_main",		// entry point
-		"ps_4_0",		// shader model (target)
-		0,				// shader compile options
-		0,				// effect compile options
-		&pPS,			// double pointer to ID3DBlob		
-		nullptr			// pointer for Error Blob messages.
+		L"Fragment.hlsl",	// filename
+		nullptr,			// optional macros
+		nullptr,			// optional include files
+		"PS_main",			// entry point
+		"ps_4_0",			// shader model (target)
+		D3DCOMPILE_DEBUG,	// shader compile options
+		0,					// effect compile options
+		&pPS,				// double pointer to ID3DBlob		
+		nullptr				// pointer for Error Blob messages.
 		);
 
 	gDevice->CreatePixelShader(pPS->GetBufferPointer(), pPS->GetBufferSize(), nullptr, &gPixelShader);
@@ -274,6 +279,19 @@ struct FBXData
 	//******************************************
 };
 
+void FlipOrder(std::vector<FBXData>& outVertexVector)
+{
+	/*The winding order is not correct when importing the Position, Normals and UV:s,
+	which can be solved by looping through the vector and flip the order in each triangle.*/
+
+	for (unsigned int i = 0; i < outVertexVector.size(); i += 3)
+	{
+		/*To flip the order of the triangles the first 2 points in the triangles are swapped,
+		which in this case mirrors the rendered mesh in the future scene.*/
+		std::swap(outVertexVector[i], outVertexVector[i + 1]);
+	}
+}
+
 std::vector<FBXData> vertPosArray;
 float pick(XMVECTOR pickRayInWorldSpacePos, XMVECTOR pickRayInWorldSpaceDir, std::vector<FBXData>& vertPosArray, XMMATRIX& worldSpace);
 
@@ -288,11 +306,11 @@ struct MaterialBuffer
 	XMFLOAT3 specular;
 	float reflection;
 
-	bool textureBool = false;
+	int textureBool = false;
 	//******************************************
-	bool normalMapBool = false;
+	int normalMapBool = false;
 	//******************************************
-	float padding[3];
+	float padding[2];
 
 	Vector3 camPos;
 	float padding2;
@@ -405,7 +423,7 @@ void ImportVertices(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 			data.pos[0] = (float)vertices[ControlPointIndices].mData[0];
 			data.pos[1] = (float)vertices[ControlPointIndices].mData[1];
-			data.pos[2] = (float)vertices[ControlPointIndices].mData[2];
+			data.pos[2] = -(float)vertices[ControlPointIndices].mData[2];
 
 			outVertexVector->push_back(data);
 		}
@@ -441,7 +459,7 @@ void ImportNormals(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 				outVertexVector->at(vertexIndex).nor[0] = normals.mData[0];
 				outVertexVector->at(vertexIndex).nor[1] = normals.mData[1];
-				outVertexVector->at(vertexIndex).nor[2] = normals.mData[2];
+				outVertexVector->at(vertexIndex).nor[2] = -normals.mData[2];
 			}
 		}
 		else if (normalElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex) //Get the normals by obtaining polygon-vertex.
@@ -472,7 +490,7 @@ void ImportNormals(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 					outVertexVector->at(indexPolygonVertex).nor[0] = normal.mData[0];
 					outVertexVector->at(indexPolygonVertex).nor[1] = normal.mData[1];
-					outVertexVector->at(indexPolygonVertex).nor[2] = normal.mData[2];
+					outVertexVector->at(indexPolygonVertex).nor[2] = -normal.mData[2];
 
 					indexPolygonVertex++;
 				}
@@ -523,7 +541,7 @@ void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 					UVs = UVElement->GetDirectArray().GetAt(UVIndex);
 
 					outVertexVector->at(vertexIndex).uv[0] = UVs.mData[0];
-					outVertexVector->at(vertexIndex).uv[1] = UVs.mData[1];
+					outVertexVector->at(vertexIndex).uv[1] = 1 - UVs.mData[1];
 				}
 			}
 		}
@@ -542,7 +560,7 @@ void ImportUV(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 					UVs = UVElement->GetDirectArray().GetAt(UVIndex);
 
 					outVertexVector->at(polyIndexCount).uv[0] = UVs.mData[0];
-					outVertexVector->at(polyIndexCount).uv[1] = UVs.mData[1];
+					outVertexVector->at(polyIndexCount).uv[1] = 1 - UVs.mData[1];
 
 					polyIndexCount++;
 				}
@@ -664,25 +682,7 @@ void ImportTexture(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 
 				for (int j = 0; j < textureCount; ++j)
 				{
-					FbxLayeredTexture *layerTexture = prop.GetSrcObject<FbxLayeredTexture>(j);
-
-					if (layerTexture)
-					{
-						FbxLayeredTexture * layeredTexture = prop.GetSrcObject <FbxLayeredTexture>(j);
-						int nbTextures = layeredTexture->GetSrcObjectCount<FbxTexture>();
-
-						for (int k = 0; k < nbTextures; ++k)
-						{
-							FbxTexture* texture = layeredTexture->GetSrcObject<FbxTexture>(k);
-
-							if (texture)
-							{
-								FbxLayeredTexture::EBlendMode blendMode;
-
-								layeredTexture->GetTextureBlendMode(k, blendMode);
-							}
-						}
-					}
+					
 					FbxTexture* texture = prop.GetSrcObject<FbxTexture>(j);
 
 					FbxFileTexture *fileTexture = FbxCast<FbxFileTexture>(texture);
@@ -692,46 +692,124 @@ void ImportTexture(FbxMesh* pMesh, std::vector<FBXData>* outVertexVector)
 					wchar_t* out;
 					FbxUTF8ToWC(filetextureName.Buffer(), out, NULL);
 
-					HRESULT hr = CreateWICTextureFromFile(gDevice, gDeviceContext, out, NULL, &gTextureView[2], 0);
+					HRESULT hr = CreateWICTextureFromFile(gDevice, gDeviceContext, out, NULL, &gTextureView[0], 0);
 
 					FbxFree(out);
 
 					test.textureBool = true;
+					
+				}
+			}
+			else
+			{
+				test.textureBool = false;
+			}
+		}
+		if (material)
+		{
+			prop = material->FindProperty(FbxSurfaceMaterial::sNormalMap);
+
+			if (prop.IsValid())
+			{
+				int textureCount = prop.GetSrcObjectCount<FbxTexture>();
+
+				for (int j = 0; j < textureCount; ++j)
+				{
+					FbxTexture* texture = prop.GetSrcObject<FbxTexture>(j);
+
+					FbxFileTexture *fileTexture = FbxCast<FbxFileTexture>(texture);
+
+					FbxString filetextureName = fileTexture->GetFileName();
+
+					wchar_t* out;
+					FbxUTF8ToWC(filetextureName.Buffer(), out, NULL);
+
+					HRESULT hr = CreateWICTextureFromFile(gDevice, gDeviceContext, out, NULL, &gTextureView[1], 0);
+
+					FbxFree(out);
 					//******************************************
 					test.normalMapBool = true;
 
+					float vecX, vecY, vecZ;
+					//The two edges of the triangle
+					XMVECTOR edge1 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+					XMVECTOR edge2 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+
 					for (int i = 0; i < vertPosArray.size() / 3; i++)
 					{
+						//Describes the first edge of the triangle
+						vecX = vertPosArray[(i * 3) + 0].pos[0] - vertPosArray[(i * 3) + 2].pos[0];
+						vecY = vertPosArray[(i * 3) + 0].pos[1] - vertPosArray[(i * 3) + 2].pos[1];
+						vecZ = vertPosArray[(i * 3) + 0].pos[2] - vertPosArray[(i * 3) + 2].pos[2];
+						edge1 = XMVectorSet(vecX, vecY, vecZ, 0.0f);
+
+						//Describes the second edge of the triangle
+						vecX = vertPosArray[(i * 3) + 2].pos[0] - vertPosArray[(i * 3) + 1].pos[0];
+						vecY = vertPosArray[(i * 3) + 2].pos[1] - vertPosArray[(i * 3) + 1].pos[1];
+						vecZ = vertPosArray[(i * 3) + 2].pos[2] - vertPosArray[(i * 3) + 1].pos[2];
+						edge2 = XMVectorSet(vecX, vecY, vecZ, 0.0f);
+
+						//Finds the first texture coordinate edge
 						tcU1 = vertPosArray[(i * 3) + 0].uv[0] - vertPosArray[(i * 3) + 2].uv[0];
 						tcV1 = vertPosArray[(i * 3) + 0].uv[1] - vertPosArray[(i * 3) + 2].uv[1];
 
+						//Finds the second texture coordinate edge
 						tcU2 = vertPosArray[(i * 3) + 2].uv[0] - vertPosArray[(i * 3) + 1].uv[0];
 						tcV2 = vertPosArray[(i * 3) + 2].uv[1] - vertPosArray[(i * 3) + 1].uv[1];
 
-						tangent.x = (tcV1 - tcV2) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
-						tangent.y = (tcV1 - tcV2) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
-						tangent.z = (tcV1 - tcV2) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+						//Finds the tangent using both tex coord edges and position edges
+						tangent.x = (tcV1 * XMVectorGetX(edge1) - tcV2 * XMVectorGetX(edge2)) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+						tangent.y = (tcV1 * XMVectorGetY(edge1) - tcV2 * XMVectorGetY(edge2)) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+						tangent.z = (tcV1 * XMVectorGetZ(edge1) - tcV2 * XMVectorGetZ(edge2)) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
 
 						tempTangent.push_back(tangent);
+
+						//Finds the bitangent using both tex coord edges and position edges
+						bitangent.x = (tcU1 * XMVectorGetX(edge1) - tcU2 * XMVectorGetX(edge2)) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+						bitangent.y = (tcU1 * XMVectorGetY(edge1) - tcU2 * XMVectorGetY(edge2)) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+						bitangent.z = (tcU1 * XMVectorGetZ(edge1) - tcU2 * XMVectorGetZ(edge2)) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+
+						tempBiTangent.push_back(bitangent);
 					}
-					XMVECTOR tangentSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+
+					float tX, tY, tZ;
+					int length = 0;
+
 					for (int i = 0; i < vertPosArray.size() / 3; i++)
 					{
-						tangentSum = XMVectorSet(tempTangent[i].x, tempTangent[i].y, tempTangent[i].z, 0.0f);
-						tangentSum = XMVector3Normalize(tangentSum);
+						tX = tempTangent[i].x;
+						tY = tempTangent[i].y;
+						tZ = tempTangent[i].z;
 
-						outVertexVector->at((i * 3)).tan[0] = XMVectorGetX(tangentSum);
-						outVertexVector->at((i * 3)).tan[1] = XMVectorGetY(tangentSum);
-						outVertexVector->at((i * 3)).tan[2] = XMVectorGetZ(tangentSum);
+						length = sqrt((tempTangent[i].x * tempTangent[i].x) + (tempTangent[i].y * tempTangent[i].y) + (tempTangent[i].z * tempTangent[i].z));
+						
+						tX = tX / length;
+						tY = tY / length;
+						tZ = tZ / length;
 
-						tangentSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+						outVertexVector->at(i).tan[0] = tX;
+						outVertexVector->at(i).tan[1] = tY;
+						outVertexVector->at(i).tan[2] = tZ;
+
+						tX = tempBiTangent[i].x;
+						tY = tempBiTangent[i].y;
+						tZ = tempBiTangent[i].z;
+
+						length = sqrt((tempBiTangent[i].x * tempBiTangent[i].x) + (tempBiTangent[i].y * tempBiTangent[i].y) + (tempBiTangent[i].z * tempBiTangent[i].z));
+
+						tX = tX / length;
+						tY = tY / length;
+						tZ = tZ / length;
+
+						outVertexVector->at(i).bit[0] = tX;
+						outVertexVector->at(i).bit[1] = tY;
+						outVertexVector->at(i).bit[2] = tZ;
 					}
 					//******************************************
 				}
 			}
 			else
 			{
-				test.textureBool = false;
 				//******************************************
 				test.normalMapBool = false;
 				//******************************************
@@ -781,11 +859,14 @@ void CreateTriangleData()
 	FbxMesh* aMesh = LoadScene(myManager, myScene);		//Import the scene and also return the mesh from the FBX file.
 
 	ImportVertices(aMesh, &aVector);	//Import vertices from FBX.
-	vertPosArray = aVector;				//Gets the vertices to the mousepicking function
 
 	ImportNormals(aMesh, &aVector);		//Import normals from FBX. 
 
 	ImportUV(aMesh, &aVector);			//Import UV:s from FBX.
+
+	FlipOrder(aVector);
+
+	vertPosArray = aVector;				//Gets the vertices to the mousepicking function
 
 	ImportMaterial(aMesh);
 	//******************************************

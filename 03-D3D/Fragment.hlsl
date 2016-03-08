@@ -15,7 +15,7 @@ struct GS_OUT
 	float4 WPos : POSITION;
 	//****************************************
 	float3 Tangent : TANGENT;
-	//float3 BiTangent : BITANGENT;
+	float3 BiTangent : BITANGENT;
 	//****************************************
 };
 
@@ -34,7 +34,7 @@ cbuffer MaterialBuffer
 	//******************************************
 	bool normalMapBool;
 	//******************************************
-	float3 padding;
+	float2 padding;
 
 	float3 camPos;
 	float padding2;
@@ -60,8 +60,7 @@ float4 PS_main(GS_OUT input) : SV_Target
 
 	input.Nor = normalize(input.Nor);
 
-	float3 r = reflect(-s, input.Nor);
-
+	float3 r = reflect(-s, input.Nor);;
 	float3 diffuseLight;
 	float3 ambientLight;
 	float3 specularLight;
@@ -77,19 +76,17 @@ float4 PS_main(GS_OUT input) : SV_Target
 		color = shaderTexture[0].Sample(sampAni, input.Tex).xyz; //Gets the texture and puts it with the UV Coordinates on the Quad
 
 		norMap = shaderTexture[1].Sample(sampAni, input.Tex);
-		norMap = (2.0f * norMap) - 1.0f;
+		norMap = (2.0f * norMap) - 1.0f;		//Changes the normal map range from [0,1] to [-1,1]
 
-		float3 biTangent = cross(input.Nor, input.Tangent);
-
-		norMapNormal = (norMap.x * input.Tangent) + (norMap.y * biTangent) + (norMap.z * input.Nor);
+		norMapNormal = (norMap.x * input.Tangent) + (norMap.y * input.BiTangent) + (norMap.z * input.Nor);
 		norMapNormal = normalize(norMapNormal);
 
-		lightI = saturate(dot(norMapNormal, (-s)));
+		lightI = saturate(dot(norMapNormal, s));
 		colorNMap = saturate(diffuse * lightI);
 		colorNMap = colorNMap * color;
 
 		diffuseLight = colorNMap * diffuse * max(dot(s, input.Nor), 0.0f); //Calculates the Diffuse Light by taking "the Alpha" Angle times Kd
-		ambientLight = colorNMap * ambient + float3(0.2, 0.2, 0.2);
+		ambientLight = colorNMap * (ambient + float3(0.2, 0.2, 0.2));
 		specularLight = colorNMap * specular * pow(max(dot(r, v), 0.0f), shininess);
 	}
 	//********************************************************************************************************
